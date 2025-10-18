@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>E-ceruza Naptár</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>E-ceruza Naptár</h1>
+    </header>
+    <main>
+        <h2>Bejelentkezés / Regisztráció</h2>
+        <div id="auth-container">
+            <input type="text" id="auth-name" placeholder="Teljes név (csak regisztrációhoz)">
+            <input type="text" id="auth-username" placeholder="Felhasználónév (ha van)">
+            <input type="password" id="auth-password" placeholder="Jelszó">
+            <button onclick="registerUser()">Regisztráció</button>
+            <button onclick="loginUser()">Bejelentkezés</button>
+            <p id="auth-message"></p>
+        </div>
+
+        <div id="calendar-container" style="display:none;">
+            <h2>Üdvözöljük, <span id="welcome-username"></span>!</h2>
+            <button onclick="logout()">Kijelentkezés</button>
+
+            <h3>Új feladat hozzáadása</h3>
+            <form id="add-task-form">
+                <input type="text" id="task-title" placeholder="Feladat címe (pl. Matek dolgozat)" required>
+                <select id="task-type" required>
+                    <option value="">Típus kiválasztása</option>
+                    <option value="Dolgozat">Dolgozat</option>
+                    <option value="Beadandó">Beadandó</option>
+                    <option value="Házi">Házi feladat</option>
+                </select>
+                <input type="datetime-local" id="task-deadline" required>
+                <input type="number" id="task-reminder" placeholder="Emlékeztető (napok)">
+                <textarea id="task-description" placeholder="Leírás (opcionális)"></textarea>
+                <button type="submit">Feladat hozzáadása</button>
+                <p id="task-message"></p>
+            </form>
+
+            <h3>Közelgő feladatok</h3>
+            <div id="tasks-list">
+                <p>Nincsenek feladatok a listán.</p>
+            </div>
+        </div>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>

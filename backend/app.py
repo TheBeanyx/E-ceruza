@@ -112,6 +112,47 @@ def add_task():
     except Exception as e:
         return jsonify({"hiba": f"Hiba történt a feladat mentésekor: {e}"}), 400
 
+# ----------------------------------------------------
+# ÚJ API VÉGPONTOK A FELADATOK LEKÉRÉSÉRE ÉS TÖRLÉSÉRE
+# ----------------------------------------------------
+
+@app.route('/tasks/<int:user_id>', methods=['GET'])
+def get_user_tasks(user_id):
+    """Lekéri egy adott felhasználóhoz tartozó ÖSSZES feladatot."""
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"hiba": "Felhasználó nem található."}), 404
+
+    # Lekérdezzük az összes feladatot az adott user_id-hoz
+    tasks = Task.query.filter_by(user_id=user_id).all()
+    
+    tasks_list = []
+    for task in tasks:
+        tasks_list.append({
+            "id": task.id,
+            "title": task.title,
+            "type": task.type,
+            # Az időt stringként adjuk vissza a JSON-ban
+            "deadline": task.deadline.isoformat(), 
+            "reminder_days": task.reminder_days,
+            "description": task.description
+        })
+        
+    return jsonify(tasks_list), 200
+
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
+def delete_task(task_id):
+    """Töröl egy feladatot az azonosítója alapján."""
+    task = Task.query.get(task_id)
+    
+    if not task:
+        return jsonify({"hiba": "Feladat nem található."}), 404
+        
+    db.session.delete(task)
+    db.session.commit()
+    
+    return jsonify({"uzenet": f"Feladat (ID: {task_id}) sikeresen törölve."}), 200
+
 
 if __name__ == '__main__':
     # Adatbázis inicializálása és táblák létrehozása az indítás előtt

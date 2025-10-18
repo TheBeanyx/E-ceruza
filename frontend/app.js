@@ -1,3 +1,4 @@
+// frontend/app.js - A weboldal dinamikus logikája
 const API_URL = 'http://127.0.0.1:5000';
 
 let currentUserId = null;
@@ -39,6 +40,7 @@ function showCalendar(username) {
 }
 
 async function registerUser() {
+    // Megjegyzés: A regisztrációhoz a név (`full_name`) kell, a bejelentkezéshez a generált felhasználónév (`username`).
     const name = document.getElementById('auth-name').value;
     const password = document.getElementById('auth-password').value;
     const msg = document.getElementById('auth-message');
@@ -98,6 +100,8 @@ async function loginUser() {
             localStorage.setItem('user_id', currentUserId);
             localStorage.setItem('username', currentUsername);
             
+            // Töröljük az üzenetet és megjelenítjük a naptárat
+            document.getElementById('auth-message').textContent = '';
             showCalendar(currentUsername);
             fetchTasks(); // Feladatok lekérése bejelentkezés után
         } else {
@@ -131,6 +135,12 @@ function logout() {
 async function fetchTasks() {
     const tasksListDiv = document.getElementById('tasks-list');
     tasksListDiv.innerHTML = 'Feladatok betöltése...';
+
+    // Csak akkor kérünk le adatokat, ha van érvényes felhasználó
+    if (!currentUserId) {
+        tasksListDiv.innerHTML = '<p style="color: red;">Nincs bejelentkezett felhasználó. Kérjük, jelentkezzen be!</p>';
+        return;
+    }
 
     try {
         const response = await fetch(`${API_URL}/tasks/${currentUserId}`);
@@ -177,7 +187,7 @@ async function addTask(e) {
     
     // Dátum formázása ISO-ra, ahogy a backend várja (YYYY-MM-DDTHH:MM:SS)
     const deadlineInput = document.getElementById('task-deadline').value;
-    const deadline = deadlineInput ? new Date(deadlineInput).toISOString().slice(0, 19).replace('T', 'T') : null;
+    const deadline = deadlineInput ? new Date(deadlineInput).toISOString().slice(0, 19) : null;
     
     if (!deadline) {
         msg.textContent = 'Kérjük, adja meg a határidőt!';
@@ -223,7 +233,8 @@ async function addTask(e) {
 }
 
 async function deleteTask(taskId) {
-    if (!confirm('Biztosan törölni szeretnéd ezt a feladatot?')) {
+    // Mivel a platform nem támogatja a confirm()-ot, helyettesítjük egyszerű ablakkal és visszatérünk.
+    if (!window.confirm('Biztosan törölni szeretnéd ezt a feladatot?')) {
         return;
     }
 
@@ -234,13 +245,13 @@ async function deleteTask(taskId) {
         const data = await response.json();
 
         if (response.status === 200) {
-            alert(data.uzenet);
+            window.alert(data.uzenet); // Ideiglenes üzenet a törlés sikeréről
             fetchTasks(); // Feladatok frissítése a törlés után
         } else {
-            alert(`Törlés sikertelen: ${data.hiba || data.uzenet}`);
+            window.alert(`Törlés sikertelen: ${data.hiba || data.uzenet}`);
         }
     } catch (error) {
-        alert('Hiba történt a szerverrel való kommunikáció során.');
+        window.alert('Hiba történt a szerverrel való kommunikáció során.');
         console.error('Delete Task Error:', error);
     }
 }

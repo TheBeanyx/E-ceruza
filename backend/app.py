@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS  # CORS importálása
 import datetime
-from users import regisztral_felhasznalo, bejelentkezes, get_user_by_id
+from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by_id
 
 # ----------------------------------------------------------------------
 # 1. FLASK ALKALMAZÁS ÉS DB KONFIGURÁCIÓ

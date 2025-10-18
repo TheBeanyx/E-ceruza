@@ -32,7 +32,7 @@ def felhasznalonev_generalas(teljes_nev, db_felhasznalok):
             
     return None
 
-def regisztral_felhasznalo(nev, jelszo, adatbazis, User_modell, bcrypt_obj):
+def regisztral_felhasznalo(adatbazis, User_modell, bcrypt_obj, nev, jelszo):
     """Végrehajtja a regisztrációt és elmenti a felhasználót az adatbázisba."""
     
     # 1. Felhasználónév generálása
@@ -40,7 +40,8 @@ def regisztral_felhasznalo(nev, jelszo, adatbazis, User_modell, bcrypt_obj):
     username = felhasznalonev_generalas(nev, jelenlegi_felhasznalok)
 
     if not username:
-        return {"hiba": "Nem sikerült egyedi felhasználónevet generálni, próbálkozz újra."}, 400
+        # Mivel a Flask route-ban kezeljük a hibaüzenetet, itt csak ValueError-t dobunk
+        raise ValueError("Nem sikerült egyedi felhasználónevet generálni, próbálkozz újra.")
 
     # 2. Jelszó titkosítása (hash-elése) - a biztonság érdekében elengedhetetlen!
     hashed_password = bcrypt_obj.generate_password_hash(jelszo).decode('utf-8')
@@ -55,3 +56,20 @@ def regisztral_felhasznalo(nev, jelszo, adatbazis, User_modell, bcrypt_obj):
     adatbazis.session.commit()
     
     return uj_felhasznalo
+
+# A HIÁNYZÓ BEJELENTKEZÉSI LOGIKA
+def bejelentkezes_felhasznalo(User_modell, bcrypt_obj, username, password):
+    """Ellenőrzi a felhasználónevet és a jelszót az adatbázisban."""
+    
+    # 1. Felhasználó keresése az adatbázisban
+    user = User_modell.query.filter_by(username=username).first()
+    
+    # 2. Ellenőrzés: Létezik-e a felhasználó ÉS egyezik-e a jelszó
+    if user and bcrypt_obj.check_password_hash(user.password_hash, password):
+        return user # Sikeres bejelentkezés, visszaadjuk a felhasználói objektumot
+    
+    return None # Sikertelen bejelentkezés
+
+def get_user_by_id(User_modell, user_id):
+    """Lekérdez egy felhasználót azonosító alapján."""
+    return User_modell.query.get(user_id)

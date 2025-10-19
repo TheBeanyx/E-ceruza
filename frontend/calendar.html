@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-ceruza Naptár - Dashboard</title>
+    <title>E-ceruza - Dashboard</title>
+    <!-- Tailwind CSS betöltése -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -22,18 +23,19 @@
             background-color: white;
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
-        /* Egyedi CSS a feladat prioritás színekhez */
-        .priority-vizsga { background-color: #fca5a5; } /* Piros */
-        .priority-beadas { background-color: #fcd34d; } /* Sárga */
-        .priority-hazifeladat { background-color: #a7f3d0; } /* Zöld */
-        .priority-tanulas { background-color: #93c5fd; } /* Kék */
+        /* ÚJ: Egyedi CSS a feladat prioritás színekhez (nem pirosak!) */
+        .priority-dolgozat { background-color: #ffedd5; border-color: #f97316; } /* Narancssárga/Peach */
+        .priority-hazifeladat { background-color: #e0e7ff; border-color: #4f46e5; } /* Indigó/Kék */
+        .priority-beadandofeladat { background-color: #ccfbf1; border-color: #14b8a6; } /* Türkiz/Cyan */
+        .priority-egyebfeljegyzesek { background-color: #f1f5f9; border-color: #64748b; } /* Szürke/Slate */
     </style>
 </head>
 <body>
     <div class="main-container mx-auto">
+        <!-- Fejléc és Üdvözlés (MÓDOSÍTVA: E-ceruza Naptár -> E-ceruza) -->
         <header class="flex justify-between items-center mb-8 p-6 rounded-xl bg-white bg-opacity-90 shadow-2xl">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">E-ceruza Naptár</h1>
+                <h1 class="text-3xl font-bold text-gray-800">E-ceruza</h1>
                 <p id="welcome-message" class="text-lg text-gray-600 mt-1"></p>
             </div>
             <button id="logout-button" class="bg-red-500 text-white p-3 rounded-lg font-semibold hover:bg-red-600 transition duration-200 shadow-md">
@@ -41,11 +43,14 @@
             </button>
         </header>
 
+        <!-- Hibaüzenet doboz -->
         <div id="error-message" class="hidden text-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg font-medium"></div>
         <div id="success-message" class="hidden text-center bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg font-medium"></div>
 
+        <!-- Fő Elrendezés: Űrlap és Feladat Lista -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
+            <!-- Bal Oldal: Új Feladat Hozzáadása -->
             <div class="lg:col-span-1 card p-8 rounded-2xl h-fit">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Feladat</h2>
                 <form id="add-task-form" class="space-y-4">
@@ -55,12 +60,13 @@
                     </div>
                     
                     <div class="space-y-1">
-                        <label for="task-type" class="block text-sm font-medium text-gray-700">Típus / Prioritás</label>
+                        <label for="task-type" class="block text-sm font-medium text-gray-700">Típus</label>
+                        <!-- MÓDOSÍTVA: Új feladattípusok -->
                         <select id="task-type" name="type" required class="w-full p-3 border border-gray-300 rounded-lg">
-                            <option value="Vizsga">Vizsga</option>
-                            <option value="Beadas">Beadás / Projekt</option>
-                            <option value="Hazifeladat">Házi feladat</option>
-                            <option value="Tanulas">Tanulás / Olvasás</option>
+                            <option value="Dolgozat">Dolgozat</option>
+                            <option value="Házifeladat">Házifeladat</option>
+                            <option value="Beadandó feladat">Beadandó feladat</option>
+                            <option value="Egyéb feljegyzések">Egyéb feljegyzések</option>
                         </select>
                     </div>
 
@@ -85,26 +91,33 @@
                 </form>
             </div>
 
+            <!-- Jobb Oldal: Feladat Lista -->
             <div class="lg:col-span-2 card p-8 rounded-2xl">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Közelgő Feladataid</h2>
                 <div id="tasks-list" class="space-y-4">
+                    <!-- A feladatok dinamikusan kerülnek ide a JavaScript által -->
                     <p class="text-gray-500 text-center" id="loading-message">Feladatok betöltése...</p>
                 </div>
             </div>
 
-        </div> </div> <script>
+        </div> <!-- Grid end -->
+    </div> <!-- Main container end -->
+
+    <script>
         const API_BASE_URL = 'http://127.0.0.1:5000';
         const tasksList = document.getElementById('tasks-list');
         const errorMessage = document.getElementById('error-message');
         const successMessage = document.getElementById('success-message');
         const userId = localStorage.getItem('user_id');
         const username = localStorage.getItem('username');
+        const fullName = localStorage.getItem('full_name'); // ÚJ: Teljes név lekérése
 
         // Azonnali ellenőrzés: Ha a felhasználó nincs bejelentkezve, irányítsd vissza a főoldalra
         if (!userId || !username) {
             window.location.href = 'index.html';
         } else {
-            document.getElementById('welcome-message').textContent = `Üdvözöllek, ${username}!`;
+            // MÓDOSÍTVA: Üdvözlés teljes névvel
+            document.getElementById('welcome-message').textContent = `Üdvözöllek, ${fullName || username}!`; 
         }
         
         // -------------------------------------------------------------------
@@ -135,12 +148,30 @@
         document.getElementById('logout-button').addEventListener('click', () => {
             localStorage.removeItem('user_id');
             localStorage.removeItem('username');
+            localStorage.removeItem('full_name'); // Töröljük a teljes nevet is
             window.location.href = 'index.html';
         });
 
         // -------------------------------------------------------------------
         // 1. FELADATOK LISTÁZÁSA ÉS MEGJELENÍTÉSE
         // -------------------------------------------------------------------
+        
+        // Segédfüggvény a CSS osztály meghatározásához a típustól függően
+        function getTypeClass(type) {
+            switch (type) {
+                case 'Dolgozat':
+                    return 'priority-dolgozat border-l-8 border-orange-600';
+                case 'Házifeladat':
+                    return 'priority-hazifeladat border-l-8 border-indigo-600';
+                case 'Beadandó feladat':
+                    return 'priority-beadandofeladat border-l-8 border-teal-600';
+                case 'Egyéb feljegyzések':
+                    return 'priority-egyebfeljegyzesek border-l-8 border-slate-600';
+                default:
+                    return 'bg-gray-100 border-l-8 border-gray-400';
+            }
+        }
+        
         async function fetchTasks() {
             tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
             
@@ -169,11 +200,11 @@
             }
 
             tasks.forEach(task => {
-                // A prioritás alapján választunk Tailwind CSS színt
-                const typeClass = task.type ? `priority-${task.type.toLowerCase().replace(/\s/g, '')}` : 'bg-gray-100';
+                const typeClass = getTypeClass(task.type);
 
                 const taskElement = document.createElement('div');
-                taskElement.className = `p-5 rounded-lg border-l-8 border-indigo-600 ${typeClass} shadow-md flex justify-between items-start`;
+                // A border-l-8 osztályt most már a getTypeClass adja vissza, hogy egységes legyen a szín
+                taskElement.className = `p-5 rounded-lg ${typeClass} shadow-md flex justify-between items-start`; 
                 taskElement.setAttribute('data-task-id', task.id);
                 
                 taskElement.innerHTML = `
@@ -190,6 +221,7 @@
                         </p>
                         ${task.description ? `<p class="text-sm text-gray-700 mt-3 border-t pt-2">${task.description}</p>` : ''}
                     </div>
+                    <!-- Törlés gomb (kérjük meg a felhasználót a megerősítésre) -->
                     <button class="delete-task-btn text-gray-500 hover:text-red-600 transition duration-150 ml-4" data-id="${task.id}">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                     </button>
@@ -220,7 +252,7 @@
                 user_id: userId,
                 title: document.getElementById('task-title').value,
                 type: document.getElementById('task-type').value,
-                deadline: deadlineInput + ':00', // ISO formátumhoz hozzáadva a másodperc
+                deadline: deadlineInput + ':00', 
                 reminder_days: parseInt(document.getElementById('task-reminder').value),
                 description: document.getElementById('task-description').value
             };
@@ -252,6 +284,8 @@
         // -------------------------------------------------------------------
         async function deleteTask(event) {
             const taskId = event.currentTarget.getAttribute('data-id');
+            // FIGYELEM: A confirm() helyett valójában modális ablakot kellene használni, 
+            // de most, hogy gyorsan működjön, a beépített confirm() marad.
             if (!confirm('Biztosan törölni szeretnéd ezt a feladatot?')) {
                 return;
             }

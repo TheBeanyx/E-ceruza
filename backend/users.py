@@ -1,12 +1,10 @@
 import unidecode
 import random
 import re
-# A Bcrypt objektumot az app.py-ban inicializáljuk!
 
 def felhasznalonev_generalas(teljes_nev, db_felhasznalok):
     """Generál egy egyedi felhasználónevet a név és egy véletlen szám alapján."""
     
-    # Ékezetek eltávolítása és kisbetűssé alakítás
     ekezet_nelkul = unidecode.unidecode(teljes_nev).lower()
     tisztitott_nev = re.sub(r'[^a-z\s]', '', ekezet_nelkul).strip()
     nev_reszek = tisztitott_nev.split()
@@ -14,7 +12,6 @@ def felhasznalonev_generalas(teljes_nev, db_felhasznalok):
     if len(nev_reszek) < 2:
         alap_resz = nev_reszek[0] if nev_reszek else "diak"
     else:
-        # A kérésed szerinti formátum: vezetéknév_keresztnév
         vezeteknev = nev_reszek[-1]
         keresztnev = nev_reszek[0]
         alap_resz = f"{vezeteknev}_{keresztnev}"
@@ -26,7 +23,6 @@ def felhasznalonev_generalas(teljes_nev, db_felhasznalok):
         veletlen_szam = random.randint(10, 99)
         generalt_felhasznalonev = f"{alap_resz}{veletlen_szam}"
         
-        # Ellenőrzés: megnézzük, hogy a generált felhasználónév már létezik-e az adatbázisban
         if generalt_felhasznalonev not in [u.username for u in db_felhasznalok]:
             return generalt_felhasznalonev
             
@@ -35,18 +31,14 @@ def felhasznalonev_generalas(teljes_nev, db_felhasznalok):
 def regisztral_felhasznalo(adatbazis, User_modell, bcrypt_obj, nev, email, jelszo):
     """Végrehajtja a regisztrációt és elmenti a felhasználót az adatbázisba, az email címmel együtt."""
     
-    # 1. Felhasználónév generálása
     jelenlegi_felhasznalok = User_modell.query.all()
     username = felhasznalonev_generalas(nev, jelenlegi_felhasznalok)
 
     if not username:
         raise ValueError("Nem sikerült egyedi felhasználónevet generálni, próbálkozz újra.")
 
-    # 2. Jelszó titkosítása (hash-elése) - a biztonság érdekében elengedhetetlen!
     hashed_password = bcrypt_obj.generate_password_hash(jelszo).decode('utf-8')
 
-    # 3. Új felhasználó létrehozása az adatbázisban
-    # Hozzáadva az email mező az User_modell-hez!
     uj_felhasznalo = User_modell(
         full_name=nev, 
         email=email,
@@ -61,14 +53,12 @@ def regisztral_felhasznalo(adatbazis, User_modell, bcrypt_obj, nev, email, jelsz
 def bejelentkezes_felhasznalo(User_modell, bcrypt_obj, username, password):
     """Ellenőrzi a felhasználónevet és a jelszót az adatbázisban."""
     
-    # 1. Felhasználó keresése az adatbázisban
     user = User_modell.query.filter_by(username=username).first()
     
-    # 2. Ellenőrzés: Létezik-e a felhasználó ÉS egyezik-e a jelszó
     if user and bcrypt_obj.check_password_hash(user.password_hash, password):
-        return user # Sikeres bejelentkezés, visszaadjuk a felhasználói objektumot
+        return user
     
-    return None # Sikertelen bejelentkezés
+    return None
 
 def get_user_by_id(User_modell, user_id):
     """Lekérdez egy felhasználót azonosító alapján."""

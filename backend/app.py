@@ -3,9 +3,10 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 import datetime
-import re # Reguláris kifejezések az email ellenőrzéshez
+import re 
 
-from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by_id # <<< ITT VOLT AZ ImportError!
+# AZ IMPORT HIBÁJA JAVÍTVA: bejelentkezes_felhasznalo lett importálva!
+from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by_id 
 
 # ----------------------------------------------------------------------
 # 1. FLASK ALKALMAZÁS ÉS DB KONFIGURÁCIÓ
@@ -65,7 +66,7 @@ class Task(db.Model):
 
 @app.route('/register', methods=['POST'])
 def register():
-    """Végpont: Új felhasználó regisztrálása (email formátum és egyediség ellenőrzés)."""
+    """Végpont: Új felhasználó regisztrálása."""
     data = request.get_json()
     if not data or 'name' not in data or 'email' not in data or 'password' not in data:
         return jsonify({'hiba': 'Hiányzó adatok: teljes név, e-mail vagy jelszó.'}), 400
@@ -79,7 +80,7 @@ def register():
     if not re.fullmatch(email_regex, email):
         return jsonify({'hiba': 'Érvénytelen e-mail cím formátum.'}), 400
     
-    # E-mail cím létezésének adatbázis ellenőrzése (ne regisztráljon kétszer)
+    # E-mail cím létezésének adatbázis ellenőrzése
     if User.query.filter_by(email=email).first():
         return jsonify({'hiba': 'Ez az e-mail cím már regisztrálva van.'}), 400
 
@@ -108,7 +109,7 @@ def login():
         return jsonify({'hiba': 'Hiányzó adatok: felhasználónév vagy jelszó.'}), 400
 
     try:
-        user = bejelentkezes_felhasznalo(User, bcrypt, username, password) # <<< Helyes függvényhívás!
+        user = bejelentkezes_felhasznalo(User, bcrypt, username, password)
         
         if user:
             return jsonify({
@@ -124,7 +125,7 @@ def login():
 
 @app.route('/tasks', methods=['POST'])
 def add_task():
-    """Végpont: Új feladat hozzáadása."""
+    # ... (A feladat hozzáadása változatlan) ...
     data = request.get_json()
     
     required_fields = ['user_id', 'title', 'type', 'deadline', 'reminder_days']
@@ -152,7 +153,7 @@ def add_task():
 
 @app.route('/tasks/<int:user_id>', methods=['GET'])
 def get_tasks(user_id):
-    """Végpont: Egy felhasználó összes feladatának lekérdezése, határidő szerint rendezve."""
+    # ... (A feladatok lekérdezése változatlan) ...
     tasks = Task.query.filter_by(user_id=user_id).order_by(Task.deadline).all()
     
     if not tasks:
@@ -162,7 +163,7 @@ def get_tasks(user_id):
 
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    """Végpont: Feladat törlése azonosító alapján."""
+    # ... (A feladat törlése változatlan) ...
     task = Task.query.get(task_id)
 
     if not task:

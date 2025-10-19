@@ -13,24 +13,40 @@
     <main>
         
         <div id="auth-container">
-            <h2>Felhasználói fiók</h2>
-            <p id="auth-message"></p>
+            
+            <div id="auth-hero">
+                <p class="hero-brand">E-CERUZA</p>
+                <h2 class="hero-title">Üdv újra!</h2>
+            </div>
+            
+            <p id="auth-message" class="message-box"></p>
 
             <div class="auth-box">
-                <h3>1. Új fiók regisztrálása</h3>
-                <p>A regisztráció után kapsz egy generált felhasználónevet.</p>
-                <input type="text" id="reg-name" placeholder="Teljes név (pl. Minta Elek)">
-                <input type="password" id="reg-password" placeholder="Jelszó">
-                <button onclick="registerUser()">Regisztráció</button>
+                <h3 class="auth-title">Új vagy? Hozz létre egy fiókot és utána mehet a móka!</h3>
+                <div class="input-row">
+                    <label for="reg-name">Teljes név</label>
+                    <input type="text" id="reg-name">
+                </div>
+                <div class="input-row">
+                    <label for="reg-password">Jelszó</label>
+                    <input type="password" id="reg-password">
+                </div>
+                <button onclick="registerUser()" class="primary-btn">Regisztráció</button>
             </div>
             
             <hr>
 
             <div class="auth-box">
-                <h3>2. Bejelentkezés</h3>
-                <input type="text" id="login-username" placeholder="Felhasználónév (A generált)">
-                <input type="password" id="login-password" placeholder="Jelszó">
-                <button onclick="loginUser()">Bejelentkezés</button>
+                <h3 class="auth-title">Bejelentkezés: Jó, hogy itt vagy újra jelentkezz be!</h3>
+                <div class="input-row">
+                    <label for="login-username">Felhasználónév</label>
+                    <input type="text" id="login-username">
+                </div>
+                <div class="input-row">
+                    <label for="login-password">Jelszó</label>
+                    <input type="password" id="login-password">
+                </div>
+                <button onclick="loginUser()" class="primary-btn">Bejelentkezés</button>
             </div>
         </div>
 

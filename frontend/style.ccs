@@ -1,94 +1,222 @@
-body {
-    font-family: sans-serif;
-    margin: 0;
-    padding: 0;
-    background-color: #f4f4f4;
-    color: #333;
+/* ------------------------------------------- */
+/* GLOBALIS ALAP STÍLUSOK (DESIGN RÉSZE)       */
+/* ------------------------------------------- */
+
+/* Globális reset és betűtípus beállítás */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+:root {
+    /* Az új dizájn színei, a mintakép alapján */
+    --color-primary-dark: #37474F; /* Sötétkék/Szürke a fejlécnek */
+    --color-primary-light: #4DD0E1; /* Világoskék/Cián kiemeléshez */
+    --color-secondary: #00796B; /* Sötét türkiz (Gombok) */
+    --color-accent: #80CBC4; /* Világos türkiz */
+    --color-text: #333;
+    --color-background: #F8FAFC;
+    --color-card-bg: #FFFFFF;
+    --color-danger: #EF4444;
 }
 
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--color-background);
+    color: var(--color-text);
+    line-height: 1.6;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* A fő címet elrejtjük, mivel az auth-hero veszi át a szerepét */
 header {
-    background-color: #007bff;
-    color: white;
-    padding: 20px;
-    text-align: center;
+    display: none; 
 }
 
 main {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: white;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    flex-grow: 1;
+    padding: 2rem 1rem;
+    max-width: 1000px;
+    width: 95%;
+    margin: 0 auto;
 }
 
 h2, h3 {
-    color: #007bff;
-    border-bottom: 2px solid #ccc;
-    padding-bottom: 5px;
-    margin-top: 25px;
+    color: var(--color-secondary);
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
 }
 
-input[type="text"], input[type="password"], input[type="datetime-local"], select, textarea {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    display: inline-block;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    border-radius: 4px;
-}
+/* ------------------------------------------- */
+/* AUTH HERO SZEKCIÓ (Mintakép alapja)         */
+/* ------------------------------------------- */
 
-button {
-    background-color: #28a745;
+#auth-hero {
+    background-color: var(--color-primary-dark);
+    /* Ide lehetne tenni a mintát:
+    background-image: url('pattern.svg'); 
+    */
     color: white;
-    padding: 10px 15px;
-    margin: 8px 5px 8px 0;
+    padding: 60px 20px;
+    margin-bottom: 30px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.hero-brand {
+    font-size: 1rem;
+    font-weight: 300;
+    letter-spacing: 5px;
+    margin-bottom: 5px;
+    opacity: 0.7;
+}
+
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: white; /* Felülírja a korábbi h2 színt */
+    margin: 0;
     border: none;
-    border-radius: 4px;
+    padding: 0;
+}
+
+/* ------------------------------------------- */
+/* KÁRTYA ÉS ŰRLAP STÍLUSOK                    */
+/* ------------------------------------------- */
+
+.auth-box {
+    background-color: var(--color-card-bg);
+    padding: 20px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: 25px;
+}
+
+.auth-title {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+    color: var(--color-text);
+    font-weight: 400;
+}
+
+/* Input mező és címke elrendezése */
+.input-row {
+    margin-bottom: 20px;
+}
+
+.input-row label {
+    display: block;
+    font-size: 0.9rem;
+    color: #64748B;
+    margin-bottom: 5px;
+    font-weight: 600;
+}
+
+input[type="text"], input[type="password"], input[type="datetime-local"], 
+input[type="number"], select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #E2E8F0;
+    border-radius: 6px;
+    font-size: 1rem;
+    background-color: #F8FAFC;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    margin: 0; /* Megszüntetjük a margint, mert az input-row kezeli */
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 1px var(--color-secondary);
+    outline: none;
+    background-color: white;
+}
+
+/* Általános gomb stílusok */
+button {
+    background-color: var(--color-secondary);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
-}
-
-button:hover {
-    background-color: #218838;
-}
-
-#auth-container button:last-child {
-    background-color: #007bff; /* Kék a bejelentkezésnek */
-}
-
-#auth-container button:last-child:hover {
-    background-color: #0056b3;
-}
-
-#auth-message, #task-message {
-    padding: 10px;
-    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background-color 0.3s, transform 0.1s;
+    margin-right: 10px;
     margin-top: 10px;
 }
 
+button:hover {
+    background-color: #004D40; /* Sötétebb türkiz */
+    transform: translateY(-1px);
+}
+
+/* Külön stílus a bejelentkezés/regisztráció gomboknak */
+.auth-box button.primary-btn {
+    display: block;
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 20px;
+}
+
+/* ------------------------------------------- */
+/* ÜZENETI TERÜLETEK ÉS EGYÉB                  */
+/* ------------------------------------------- */
+
+#auth-message, #task-message {
+    padding: 12px;
+    margin: 15px 0;
+    border-radius: 8px;
+    text-align: center;
+    font-weight: 600;
+}
+
+/* Feladat lista és naptár stílusai (a korábbi jó stílusok megtartásával) */
+#calendar-container h2 {
+    color: var(--color-secondary);
+    border-bottom: 2px solid var(--color-accent);
+    padding-bottom: 0.5rem;
+}
+
+#calendar-container > button {
+    background-color: var(--color-danger);
+    margin-bottom: 20px;
+}
+#calendar-container > button:hover {
+    background-color: #C53030;
+}
+
+#add-task-form, #tasks-list {
+    background-color: var(--color-card-bg);
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+}
+
 .task-item {
-    background-color: #f9f9f9;
-    border: 1px solid #ddd;
-    padding: 15px;
-    margin-bottom: 10px;
-    border-radius: 5px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-}
-
-.task-info {
-    flex-grow: 1;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-left: 5px solid var(--color-accent);
+    background-color: #F7FDFD;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
 }
 
 .task-delete {
-    background-color: #dc3545;
-    color: white;
-    padding: 5px 10px;
-    border: none;
-    cursor: pointer;
-}
-
-.task-delete:hover {
-    background-color: #c82333;
+    background-color: var(--color-danger);
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    margin: 0;
 }

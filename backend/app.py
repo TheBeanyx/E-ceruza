@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 import uuid
 from datetime import datetime
+import random # Szükséges a random szám generálásához
 
 # --- Inicializáció ---
 app = Flask(__name__)
@@ -50,21 +51,41 @@ with app.app_context():
 def register():
     data = request.get_json()
     
-    # Felhasználónév generálása a teljes névből
-    name_parts = data['name'].lower().split()
-    base_username = "_".join(name_parts)
-    username = base_username
-    counter = 1
+    # 1. Teljes név feldolgozása
+    full_name = data['name'].strip()
     
-    # Ellenőrzés, hogy a felhasználónév egyedi-e
+    # 2. Felhasználónév generálása
+    name_parts = full_name.lower().split()
+    
+    if len(name_parts) >= 2:
+        # Ha van legalább 2 név (keresztnév vezetéknév)
+        # Az utolsó név a vezetéknév, az első a keresztnév (nem magyaros sorrend, de így biztonságos)
+        first_name = name_parts[0]
+        last_name = name_parts[-1] 
+    elif len(name_parts) == 1:
+        # Ha csak egy név van megadva
+        first_name = name_parts[0]
+        last_name = "user"
+    else:
+        # Ha üres
+        first_name = "uj"
+        last_name = "felhasznalo"
+        
+    # Felhasználónév alapja: keresztnév_vezetéknév (kisbetűsen, de ékezettel)
+    # Változás: KIVETTEM az unidecode használatát
+    base_username_str = f"{first_name}_{last_name}"
+    
+    username = base_username_str
+    
+    # 3. Random szám hozzáadása és egyediség ellenőrzése
     while User.query.filter_by(username=username).first():
-        username = f"{base_username}_{counter}"
-        counter += 1
+        random_number = random.randint(10, 99) # Kétjegyű szám
+        username = f"{base_username_str}{random_number}"
 
     hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
     new_user = User(
         public_id=str(uuid.uuid4()),
-        name=data['name'], # Teljes név mentése
+        name=full_name, # Teljes név mentése
         email=data['email'],
         username=username,
         password_hash=hashed_password

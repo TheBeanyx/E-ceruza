@@ -47,6 +47,8 @@ async function registerUser() {
 
     if (!name || !password) {
         msg.textContent = 'Kérjük, adja meg a nevét és jelszavát!';
+        msg.style.backgroundColor = '#f8d7da';
+        msg.style.color = '#721c24';
         return;
     }
 
@@ -68,20 +70,24 @@ async function registerUser() {
             msg.style.color = '#721c24';
         }
     } catch (error) {
-        msg.textContent = 'Hiba történt a szerverrel való kommunikáció során.';
+        msg.textContent = 'Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!';
         msg.style.backgroundColor = '#f8d7da';
         msg.style.color = '#721c24';
         console.error('Registration Error:', error);
     }
 }
 
+// *** JAVÍTOTT BEJELENTKEZÉSI FUNKCIÓ ***
 async function loginUser() {
+    // A bejelentkezéshez a felhasználónév mező ID-je: 'auth-username'
     const username = document.getElementById('auth-username').value;
     const password = document.getElementById('auth-password').value;
     const msg = document.getElementById('auth-message');
 
     if (!username || !password) {
         msg.textContent = 'Kérjük, adja meg a felhasználónevét és jelszavát!';
+        msg.style.backgroundColor = '#f8d7da';
+        msg.style.color = '#721c24';
         return;
     }
 
@@ -89,8 +95,10 @@ async function loginUser() {
         const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
+            // Csak a felhasználónévvel és jelszóval küldjük el a kérést!
+            body: JSON.stringify({ username: username, password: password })
         });
+        
         const data = await response.json();
 
         if (response.status === 200) {
@@ -105,12 +113,14 @@ async function loginUser() {
             showCalendar(currentUsername);
             fetchTasks(); // Feladatok lekérése bejelentkezés után
         } else {
-            msg.textContent = `Bejelentkezés sikertelen: ${data.hiba}`;
+            // Szerver hiba (pl. 401 Unauthorized - Hibás adatok)
+            msg.textContent = `Bejelentkezés sikertelen: ${data.hiba || data.uzenet}`;
             msg.style.backgroundColor = '#f8d7da';
             msg.style.color = '#721c24';
         }
     } catch (error) {
-        msg.textContent = 'Hiba történt a szerverrel való kommunikáció során.';
+        // Hálózati hiba (pl. a szerver nem érhető el)
+        msg.textContent = 'Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!';
         msg.style.backgroundColor = '#f8d7da';
         msg.style.color = '#721c24';
         console.error('Login Error:', error);
@@ -225,7 +235,7 @@ async function addTask(e) {
             msg.style.color = '#721c24';
         }
     } catch (error) {
-        msg.textContent = 'Hiba történt a szerverrel való kommunikáció során.';
+        msg.textContent = 'Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!';
         msg.style.backgroundColor = '#f8d7da';
         msg.style.color = '#721c24';
         console.error('Add Task Error:', error);
@@ -233,8 +243,9 @@ async function addTask(e) {
 }
 
 async function deleteTask(taskId) {
-    // Mivel a platform nem támogatja a confirm()-ot, helyettesítjük egyszerű ablakkal és visszatérünk.
-    if (!window.confirm('Biztosan törölni szeretnéd ezt a feladatot?')) {
+    // !!! FIGYELEM: A platformon a window.confirm() és window.alert() nem támogatott!
+    // Kérlek, később cseréld le egyedi modális ablakra!
+    if (!window.confirm('Biztosan törölni szeretnéd ezt a feladatot? (Kérem OK-ra kattintani a folytatáshoz)')) {
         return;
     }
 
@@ -245,10 +256,10 @@ async function deleteTask(taskId) {
         const data = await response.json();
 
         if (response.status === 200) {
-            window.alert(data.uzenet); // Ideiglenes üzenet a törlés sikeréről
+            window.alert('Sikeresen törölve.'); // Kérlek, ezt is cseréld le!
             fetchTasks(); // Feladatok frissítése a törlés után
         } else {
-            window.alert(`Törlés sikertelen: ${data.hiba || data.uzenet}`);
+            window.alert(`Törlés sikertelen: ${data.hiba || data.uzenet}`); // Kérlek, ezt is cseréld le!
         }
     } catch (error) {
         window.alert('Hiba történt a szerverrel való kommunikáció során.');

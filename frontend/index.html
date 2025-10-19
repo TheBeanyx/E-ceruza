@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-ceruza Diáknaptár</title>
-    <!-- Tailwind CSS betöltése -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* A fő háttérkép stílusa, ami a tanulásra ösztönző kinézetet adja */
@@ -32,25 +31,20 @@
 </head>
 <body>
     <div class="main-container">
-        <!-- Cím és Fejléc -->
         <header class="text-center mb-10 p-6 rounded-xl bg-white bg-opacity-90 shadow-2xl">
             <h1 class="text-5xl font-extrabold text-gray-800 tracking-tight">E-ceruza Naptár</h1>
             <p class="text-xl text-gray-600 mt-2">A te digitális tanulmányi segédeszközöd.</p>
         </header>
 
-        <!-- Hibaüzenet doboz (dinamikusan látható/rejtett) -->
         <div id="error-message" class="hidden text-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg font-medium transition duration-300" role="alert">
             <p>Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!</p>
         </div>
 
         <div id="success-message" class="hidden text-center bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg font-medium transition duration-300" role="alert">
-            <!-- A sikeres regisztráció üzenet jelenik meg itt -->
-        </div>
+            </div>
 
-        <!-- Fő Tartalom: Regisztráció és Bejelentkezés Kártyák -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <!-- 1. Regisztrációs Kártya -->
             <div class="card p-8 rounded-2xl">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Diák Regisztráció</h2>
                 <p class="text-gray-600 mb-6">Hozz létre egy fiókot és utána mehet a móka!</p>
@@ -82,7 +76,6 @@
                 </form>
             </div>
 
-            <!-- 2. Bejelentkezési Kártya -->
             <div class="card p-8 rounded-2xl">
                 <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Bejelentkezés</h2>
                 <p class="text-gray-600 mb-6">Jó, hogy itt vagy! Jelentkezz be újra!</p>
@@ -104,10 +97,7 @@
                 </form>
             </div>
 
-        </div> <!-- Grid end -->
-    </div> <!-- Main container end -->
-
-    <script>
+        </div> </div> <script>
         const API_BASE_URL = 'http://127.0.0.1:5000';
         const errorMessage = document.getElementById('error-message');
         const successMessage = document.getElementById('success-message');
@@ -193,7 +183,7 @@
         });
 
         // -------------------------------------------------------------------
-        // 2. BEJELENTKEZÉS KEZELÉSE
+        // 2. BEJELENTKEZÉS KEZELÉSE (Átirányít a calendar.html-re)
         // -------------------------------------------------------------------
         document.getElementById('login-form').addEventListener('submit', async function(event) {
             event.preventDefault();
@@ -206,36 +196,13 @@
 
             if (result) {
                 // Sikeres bejelentkezés esetén
-                showMessage(successMessage, `Üdvözöllek, ${result.username}! Sikeres bejelentkezés.`, false);
-                
-                // Mivel még nincs naptár oldalunk, ideiglenesen elmentjük a felhasználói adatokat, és üdvözöljük.
-                // KÉSŐBB: Átirányítás a naptár oldalra
                 localStorage.setItem('user_id', result.user_id);
                 localStorage.setItem('username', result.username);
 
-                // Ideiglenes átirányítás a "Naptár" nézetre (ami még nincs kész)
-                renderCalendarPage(result.username);
+                // ÁTIRÁNYÍTÁS A NAPTÁR OLDALRA
+                window.location.href = 'calendar.html'; 
             }
         });
-        
-        // -------------------------------------------------------------------
-        // IDEIGLENES: A NAPTÁR OLDAL MEGJELENÍTÉSE (Még a fő feladat)
-        // -------------------------------------------------------------------
-        function renderCalendarPage(username) {
-            const body = document.querySelector('body');
-            body.innerHTML = `
-                <div class="main-container text-center">
-                    <h1 class="text-6xl font-extrabold text-white mt-20">Üdvözlünk, ${username}!</h1>
-                    <p class="text-xl text-white mt-4">A naptár oldal fejlesztés alatt áll. Készen állsz a folytatásra?</p>
-                    <button onclick="window.location.reload()" class="mt-8 bg-yellow-400 text-gray-900 p-4 rounded-full font-bold hover:bg-yellow-500 transition duration-300 shadow-lg">
-                        Vissza a bejelentkezéshez
-                    </button>
-                </div>
-            `;
-            body.style.backgroundImage = 'linear-gradient(to right top, #2f5f6e, #4c8a8c, #70b4a4, #9be1b7, #ccffcd)';
-        }
-
     </script>
 </body>
 </html>
-s

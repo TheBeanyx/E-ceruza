@@ -4,21 +4,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>E-ceruza Naptár</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css"> 
 </head>
 <body>
     <header>
         <h1>E-ceruza Naptár</h1>
     </header>
     <main>
-        <h2>Bejelentkezés / Regisztráció</h2>
+        
         <div id="auth-container">
-            <input type="text" id="auth-name" placeholder="Teljes név (csak regisztrációhoz)">
-            <input type="text" id="auth-username" placeholder="Felhasználónév (ha van)">
-            <input type="password" id="auth-password" placeholder="Jelszó">
-            <button onclick="registerUser()">Regisztráció</button>
-            <button onclick="loginUser()">Bejelentkezés</button>
+            <h2>Felhasználói fiók</h2>
             <p id="auth-message"></p>
+
+            <div class="auth-box">
+                <h3>1. Új fiók regisztrálása</h3>
+                <p>A regisztráció után kapsz egy generált felhasználónevet.</p>
+                <input type="text" id="reg-name" placeholder="Teljes név (pl. Minta Elek)">
+                <input type="password" id="reg-password" placeholder="Jelszó">
+                <button onclick="registerUser()">Regisztráció</button>
+            </div>
+            
+            <hr>
+
+            <div class="auth-box">
+                <h3>2. Bejelentkezés</h3>
+                <input type="text" id="login-username" placeholder="Felhasználónév (A generált)">
+                <input type="password" id="login-password" placeholder="Jelszó">
+                <button onclick="loginUser()">Bejelentkezés</button>
+            </div>
         </div>
 
         <div id="calendar-container" style="display:none;">

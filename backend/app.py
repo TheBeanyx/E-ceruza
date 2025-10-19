@@ -1,8 +1,9 @@
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
-from flask_cors import CORS  # CORS importálása
+from flask_cors import CORS
 import datetime
+# Fontos: A users.py-ból importált függvények
 from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by_id
 
 # ----------------------------------------------------------------------
@@ -10,14 +11,14 @@ from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by
 # ----------------------------------------------------------------------
 
 app = Flask(__name__)
-CORS(app)  # CORS engedélyezése minden forrásra (*)
+CORS(app)
 
-# Konfiguráció: SQLite adatbázis fájlként tárolva a tanulo_naptar.db
+# Konfiguráció
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tanulo_naptar.db'
 app.config['SECRET_KEY'] = 'ez-egy-nagyon-hosszu-titkos-kulcs-es-feltetlenul-csereld-ki-a-sajat-todra'
 
 db = SQLAlchemy(app)
-bcrypt = Bcrypt(app) # Jelszó titkosító inicializálása
+bcrypt = Bcrypt(app)
 
 # ----------------------------------------------------------------------
 # 2. ADATBÁZIS MODELLEK (TÁBLÁK)
@@ -27,9 +28,9 @@ class User(db.Model):
     """Felhasználók (tanulók) táblája."""
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100))
-    username = db.Column(db.String(80), unique=True, nullable=False) # A generált felhasználónév
-    password_hash = db.Column(db.String(128), nullable=False) # Titkosított jelszó
-    tasks = db.relationship('Task', backref='owner', lazy=True, cascade="all, delete-orphan") # Kapcsolat a feladatokkal
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    tasks = db.relationship('Task', backref='owner', lazy=True, cascade="all, delete-orphan")
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -39,7 +40,7 @@ class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(150), nullable=False)
-    type = db.Column(db.String(50)) # Pl. Dolgozat, Beadandó
+    type = db.Column(db.String(50))
     deadline = db.Column(db.DateTime, nullable=False)
     reminder_days = db.Column(db.Integer)
     description = db.Column(db.Text)
@@ -51,7 +52,7 @@ class Task(db.Model):
             'user_id': self.user_id,
             'title': self.title,
             'type': self.type,
-            'deadline': self.deadline.isoformat(), # Dátum formázása
+            'deadline': self.deadline.isoformat(),
             'reminder_days': self.reminder_days,
             'description': self.description
         }
@@ -70,7 +71,6 @@ def register():
     full_name = data['name']
     password = data['password']
 
-    # A felhasználónév generálását és a mentést a users.py végzi
     try:
         new_user = regisztral_felhasznalo(db, User, bcrypt, full_name, password)
         return jsonify({
@@ -85,16 +85,25 @@ def register():
 
 @app.route('/login', methods=['POST'])
 def login():
-    """Végpont: Felhasználó bejelentkezése."""
+    """
+    Végpont: Felhasználó bejelentkezése.
+    Javítva: biztosítja, hogy a 'username' mezőt olvassa,
+    és a 'bejelentkezes_felhasznalo' függvényt hívja.
+    """
     data = request.get_json()
-    if not data or 'username' not in data or 'password' not in data:
+    
+    # 1. Ellenőrizzük, hogy a frontend által küldött 'username' és 'password' megvan-e
+    username = data.get('username')
+    password = data.get('password')
+
+    if not username or not password:
         return jsonify({'hiba': 'Hiányzó adatok: felhasználónév vagy jelszó.'}), 400
 
-    username = data['username']
-    password = data['password']
-
     try:
-        user = bejelentkezes(User, bcrypt, username, password)
+        # 2. Hívjuk meg a users.py-ból importált bejelentkezési logikát
+        # Fontos: A HIBÁS hívás helyett a bejelentkezes_felhasznalo-t használjuk!
+        user = bejelentkezes_felhasznalo(User, bcrypt, username, password)
+        
         if user:
             return jsonify({
                 'uzenet': 'Sikeres bejelentkezés!',
@@ -104,7 +113,10 @@ def login():
         else:
             return jsonify({'hiba': 'Érvénytelen felhasználónév vagy jelszó.'}), 401
     except Exception as e:
+        # Hiba a bejelentkezés feldolgozása közben
+        print(f"Login Error: {e}")
         return jsonify({'hiba': f'Hiba a bejelentkezés során: {str(e)}'}), 500
+
 
 @app.route('/tasks', methods=['POST'])
 def add_task():
@@ -116,13 +128,10 @@ def add_task():
         return jsonify({'hiba': 'Hiányzó adatok.'}), 400
 
     try:
-        # Dátum string konvertálása Python datetime objektummá
-        # Várható formátum: YYYY-MM-DDTHH:MM:SS (pl. 2025-10-25T14:00:00)
         deadline_dt = datetime.datetime.fromisoformat(data['deadline'])
     except ValueError:
         return jsonify({'hiba': 'Érvénytelen határidő formátum. Használd az ISO formátumot.'}), 400
 
-    # Új feladat létrehozása
     new_task = Task(
         user_id=data['user_id'],
         title=data['title'],
@@ -143,7 +152,7 @@ def get_tasks(user_id):
     tasks = Task.query.filter_by(user_id=user_id).order_by(Task.deadline).all()
     
     if not tasks:
-        return jsonify([]), 200 # Üres lista, ha nincs feladat
+        return jsonify([]), 200
 
     return jsonify([task.to_dict() for task in tasks]), 200
 
@@ -166,9 +175,7 @@ def delete_task(task_id):
 
 if __name__ == '__main__':
     with app.app_context():
-        # Létrehozza az adatbázist és a táblákat, ha még nem léteznek
         db.create_all() 
     
-    # A szerver elindítása
     print(">>> Flask szerver indul: http://127.0.0.1:5000")
     app.run(debug=True)

@@ -40,9 +40,9 @@ function showCalendar(username) {
 }
 
 async function registerUser() {
-    // Megjegyzés: A regisztrációhoz a név (`full_name`) kell, a bejelentkezéshez a generált felhasználónév (`username`).
-    const name = document.getElementById('auth-name').value;
-    const password = document.getElementById('auth-password').value;
+    // Új ID-k a HTML-ből: 'reg-name' és 'reg-password'
+    const name = document.getElementById('reg-name').value;
+    const password = document.getElementById('reg-password').value;
     const msg = document.getElementById('auth-message');
 
     if (!name || !password) {
@@ -64,6 +64,10 @@ async function registerUser() {
             msg.textContent = `Sikeres regisztráció! Felhasználóneved: ${data.felhasznalonev}. Jelentkezz be!`;
             msg.style.backgroundColor = '#d4edda';
             msg.style.color = '#155724';
+            
+            // Töröljük a regisztrációs mezőket
+            document.getElementById('reg-name').value = '';
+            document.getElementById('reg-password').value = '';
         } else {
             msg.textContent = `Regisztráció sikertelen: ${data.hiba || data.uzenet}`;
             msg.style.backgroundColor = '#f8d7da';
@@ -77,11 +81,10 @@ async function registerUser() {
     }
 }
 
-// *** JAVÍTOTT BEJELENTKEZÉSI FUNKCIÓ ***
 async function loginUser() {
-    // A bejelentkezéshez a felhasználónév mező ID-je: 'auth-username'
-    const username = document.getElementById('auth-username').value;
-    const password = document.getElementById('auth-password').value;
+    // ÚJ ID-k a HTML-ből: 'login-username' és 'login-password'
+    const username = document.getElementById('login-username').value;
+    const password = document.getElementById('login-password').value;
     const msg = document.getElementById('auth-message');
 
     if (!username || !password) {
@@ -95,8 +98,8 @@ async function loginUser() {
         const response = await fetch(`${API_URL}/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            // Csak a felhasználónévvel és jelszóval küldjük el a kérést!
-            body: JSON.stringify({ username: username, password: password })
+            // EZ A LÉNYEG: Biztosan csak a 'username' és 'password' mezőket küldjük el!
+            body: JSON.stringify({ username: username, password: password }) 
         });
         
         const data = await response.json();
@@ -111,7 +114,7 @@ async function loginUser() {
             // Töröljük az üzenetet és megjelenítjük a naptárat
             document.getElementById('auth-message').textContent = '';
             showCalendar(currentUsername);
-            fetchTasks(); // Feladatok lekérése bejelentkezés után
+            fetchTasks(); 
         } else {
             // Szerver hiba (pl. 401 Unauthorized - Hibás adatok)
             msg.textContent = `Bejelentkezés sikertelen: ${data.hiba || data.uzenet}`;
@@ -243,8 +246,6 @@ async function addTask(e) {
 }
 
 async function deleteTask(taskId) {
-    // !!! FIGYELEM: A platformon a window.confirm() és window.alert() nem támogatott!
-    // Kérlek, később cseréld le egyedi modális ablakra!
     if (!window.confirm('Biztosan törölni szeretnéd ezt a feladatot? (Kérem OK-ra kattintani a folytatáshoz)')) {
         return;
     }
@@ -256,10 +257,10 @@ async function deleteTask(taskId) {
         const data = await response.json();
 
         if (response.status === 200) {
-            window.alert('Sikeresen törölve.'); // Kérlek, ezt is cseréld le!
+            window.alert('Sikeresen törölve.');
             fetchTasks(); // Feladatok frissítése a törlés után
         } else {
-            window.alert(`Törlés sikertelen: ${data.hiba || data.uzenet}`); // Kérlek, ezt is cseréld le!
+            window.alert(`Törlés sikertelen: ${data.hiba || data.uzenet}`);
         }
     } catch (error) {
         window.alert('Hiba történt a szerverrel való kommunikáció során.');

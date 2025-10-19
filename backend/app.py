@@ -5,8 +5,7 @@ from flask_cors import CORS
 import datetime
 import re # Reguláris kifejezések az email ellenőrzéshez
 
-# Eltávolítva: smtplib és email.mime.text import
-from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by_id
+from users import regisztral_felhasznalo, bejelentkezes_felhasznalo, get_user_by_id # <<< ITT VOLT AZ ImportError!
 
 # ----------------------------------------------------------------------
 # 1. FLASK ALKALMAZÁS ÉS DB KONFIGURÁCIÓ
@@ -22,8 +21,6 @@ app.config['SECRET_KEY'] = 'ez-egy-nagyon-hosszu-titkos-kulcs-es-feltetlenul-cse
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app) 
 
-# Eltávolítva: E-MAIL KONFIGURÁCIÓ 
-
 # ----------------------------------------------------------------------
 # 2. ADATBÁZIS MODELLEK (TÁBLÁK)
 # ----------------------------------------------------------------------
@@ -32,7 +29,7 @@ class User(db.Model):
     """Felhasználók (tanulók) táblája."""
     id = db.Column(db.Integer, primary_key=True)
     full_name = db.Column(db.String(100))
-    email = db.Column(db.String(120), unique=True, nullable=False) # MARAD: Az email mező az adatbázisban
+    email = db.Column(db.String(120), unique=True, nullable=False) 
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
     tasks = db.relationship('Task', backref='owner', lazy=True, cascade="all, delete-orphan")
@@ -61,8 +58,6 @@ class Task(db.Model):
             'reminder_days': self.reminder_days,
             'description': self.description
         }
-
-# Eltávolítva: E-MAIL SEGÉDFÜGGVÉNY (send_registration_email)
         
 # ----------------------------------------------------------------------
 # 3. KÉZELŐK ÉS VÉGPONTOK (API ROUTES)
@@ -70,7 +65,7 @@ class Task(db.Model):
 
 @app.route('/register', methods=['POST'])
 def register():
-    """Végpont: Új felhasználó regisztrálása (csak email formátum és egyediség ellenőrzés)."""
+    """Végpont: Új felhasználó regisztrálása (email formátum és egyediség ellenőrzés)."""
     data = request.get_json()
     if not data or 'name' not in data or 'email' not in data or 'password' not in data:
         return jsonify({'hiba': 'Hiányzó adatok: teljes név, e-mail vagy jelszó.'}), 400
@@ -89,11 +84,8 @@ def register():
         return jsonify({'hiba': 'Ez az e-mail cím már regisztrálva van.'}), 400
 
     try:
-        # A users.py-ban már bent van az email kezelése
         new_user = regisztral_felhasznalo(db, User, bcrypt, full_name, email, password)
         
-        # Eltávolítva: E-mail küldése
-
         return jsonify({
             'uzenet': 'Sikeres regisztráció!',
             'felhasznalonev': new_user.username,
@@ -116,8 +108,7 @@ def login():
         return jsonify({'hiba': 'Hiányzó adatok: felhasználónév vagy jelszó.'}), 400
 
     try:
-        # bejelentkezes_felhasznalo a users.py-ból
-        user = bejelentkezes_felhasznalo(User, bcrypt, username, password)
+        user = bejelentkezes_felhasznalo(User, bcrypt, username, password) # <<< Helyes függvényhívás!
         
         if user:
             return jsonify({
@@ -188,9 +179,6 @@ def delete_task(task_id):
 
 if __name__ == '__main__':
     with app.app_context():
-        # Létrehozza az adatbázist és a táblákat.
-        # Ha már létezik tanulo_naptar.db, és az új User modellt használod, 
-        # lehet, hogy torölni kell a .db fájlt a hibák elkerülése érdekében.
         db.create_all() 
     
     print(">>> Flask szerver indul: http://127.0.0.1:5000")

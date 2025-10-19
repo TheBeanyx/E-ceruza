@@ -28,9 +28,15 @@
                     <input type="text" id="reg-name">
                 </div>
                 <div class="input-row">
+                    <label for="reg-email">E-mail cím</label>
+                    <input type="text" id="reg-email" placeholder="valami@pelda.hu"> </div>
+                <div class="input-row">
                     <label for="reg-password">Jelszó</label>
                     <input type="password" id="reg-password">
                 </div>
+                <div class="input-row">
+                    <label for="reg-password-confirm">Jelszó megerősítése</label>
+                    <input type="password" id="reg-password-confirm"> </div>
                 <button onclick="registerUser()" class="primary-btn">Regisztráció</button>
             </div>
             
@@ -51,30 +57,7 @@
         </div>
 
         <div id="calendar-container" style="display:none;">
-            <h2>Üdvözöljük, <span id="welcome-username"></span>!</h2>
-            <button onclick="logout()">Kijelentkezés</button>
-
-            <h3>Új feladat hozzáadása</h3>
-            <form id="add-task-form">
-                <input type="text" id="task-title" placeholder="Feladat címe (pl. Matek dolgozat)" required>
-                <select id="task-type" required>
-                    <option value="">Típus kiválasztása</option>
-                    <option value="Dolgozat">Dolgozat</option>
-                    <option value="Beadandó">Beadandó</option>
-                    <option value="Házi">Házi feladat</option>
-                </select>
-                <input type="datetime-local" id="task-deadline" required>
-                <input type="number" id="task-reminder" placeholder="Emlékeztető (napok)">
-                <textarea id="task-description" placeholder="Leírás (opcionális)"></textarea>
-                <button type="submit">Feladat hozzáadása</button>
-                <p id="task-message"></p>
-            </form>
-
-            <h3>Közelgő feladatok</h3>
-            <div id="tasks-list">
-                <p>Nincsenek feladatok a listán.</p>
             </div>
-        </div>
     </main>
     <script src="app.js"></script>
 </body>

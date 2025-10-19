@@ -32,23 +32,25 @@ def felhasznalonev_generalas(teljes_nev, db_felhasznalok):
             
     return None
 
-def regisztral_felhasznalo(adatbazis, User_modell, bcrypt_obj, nev, jelszo):
-    """Végrehajtja a regisztrációt és elmenti a felhasználót az adatbázisba."""
+# MÓDOSÍTOTT FÜGGVÉNY: Hozzáadva az 'email' paraméter
+def regisztral_felhasznalo(adatbazis, User_modell, bcrypt_obj, nev, email, jelszo):
+    """Végrehajtja a regisztrációt és elmenti a felhasználót az adatbázisba, az email címmel együtt."""
     
     # 1. Felhasználónév generálása
     jelenlegi_felhasznalok = User_modell.query.all()
     username = felhasznalonev_generalas(nev, jelenlegi_felhasznalok)
 
     if not username:
-        # Mivel a Flask route-ban kezeljük a hibaüzenetet, itt csak ValueError-t dobunk
         raise ValueError("Nem sikerült egyedi felhasználónevet generálni, próbálkozz újra.")
 
     # 2. Jelszó titkosítása (hash-elése) - a biztonság érdekében elengedhetetlen!
     hashed_password = bcrypt_obj.generate_password_hash(jelszo).decode('utf-8')
 
     # 3. Új felhasználó létrehozása az adatbázisban
+    # FONTOS: Hozzáadva az email mező az User_modell-hez!
     uj_felhasznalo = User_modell(
         full_name=nev, 
+        email=email,
         username=username, 
         password_hash=hashed_password
     )
@@ -73,3 +75,20 @@ def bejelentkezes_felhasznalo(User_modell, bcrypt_obj, username, password):
 def get_user_by_id(User_modell, user_id):
     """Lekérdez egy felhasználót azonosító alapján."""
     return User_modell.query.get(user_id)
+```
+eof
+
+---
+
+## Git Summary
+
+Kérlek, használd az alábbi összefoglalót a Git commit üzeneteként:
+
+```
+FIX: users.py regisztrációs függvény frissítése email paraméterrel
+```
+
+## Git Description (Leírás - opcionális)
+
+```
+Módosítva a regisztral_felhasznalo függvény a users.py-ban, hogy fogadja és mentse az új email mezőt az adatbázisba, biztosítva az app.py e-mail küldő logikájának alapját.

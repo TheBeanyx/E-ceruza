@@ -3,62 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-ceruza Naptár</title>
-    <link rel="stylesheet" href="style.css"> 
+    <title>E-ceruza Diáknaptár</title>
+    <!-- Tailwind CSS betöltése -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* A fő háttérkép stílusa, ami a tanulásra ösztönző kinézetet adja */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6; /* Világosszürke fallback */
+            background-image: linear-gradient(to right top, #051937, #004d7a, #008793, #00bf72, #a8eb12);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem 0;
+        }
+        .main-container {
+            max-width: 1024px;
+            width: 100%;
+            padding: 0 1rem;
+        }
+        /* Egyedi stílus a kártyákhoz */
+        .card {
+            background-color: white;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>E-ceruza Naptár</h1>
-    </header>
-    <main>
-        
-        <div id="auth-container">
-            
-            <div id="auth-hero">
-                <p class="hero-brand">E-CERUZA</p>
-                <h2 class="hero-title">Üdv újra!</h2>
-            </div>
-            
-            <p id="auth-message" class="message-box"></p>
+    <div class="main-container">
+        <!-- Cím és Fejléc -->
+        <header class="text-center mb-10 p-6 rounded-xl bg-white bg-opacity-90 shadow-2xl">
+            <h1 class="text-5xl font-extrabold text-gray-800 tracking-tight">E-ceruza Naptár</h1>
+            <p class="text-xl text-gray-600 mt-2">A te digitális tanulmányi segédeszközöd.</p>
+        </header>
 
-            <div class="auth-box">
-                <h3 class="auth-title">Új vagy? Hozz létre egy fiókot és utána mehet a móka!</h3>
-                <div class="input-row">
-                    <label for="reg-name">Teljes név</label>
-                    <input type="text" id="reg-name">
-                </div>
-                <div class="input-row">
-                    <label for="reg-email">E-mail cím</label>
-                    <input type="text" id="reg-email" placeholder="valami@pelda.hu"> </div>
-                <div class="input-row">
-                    <label for="reg-password">Jelszó</label>
-                    <input type="password" id="reg-password">
-                </div>
-                <div class="input-row">
-                    <label for="reg-password-confirm">Jelszó megerősítése</label>
-                    <input type="password" id="reg-password-confirm"> </div>
-                <button onclick="registerUser()" class="primary-btn">Regisztráció</button>
-            </div>
-            
-            <hr>
-
-            <div class="auth-box">
-                <h3 class="auth-title">Bejelentkezés: Jó, hogy itt vagy újra jelentkezz be!</h3>
-                <div class="input-row">
-                    <label for="login-username">Felhasználónév</label>
-                    <input type="text" id="login-username">
-                </div>
-                <div class="input-row">
-                    <label for="login-password">Jelszó</label>
-                    <input type="password" id="login-password">
-                </div>
-                <button onclick="loginUser()" class="primary-btn">Bejelentkezés</button>
-            </div>
+        <!-- Hibaüzenet doboz (dinamikusan látható/rejtett) -->
+        <div id="error-message" class="hidden text-center bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6 rounded-lg font-medium transition duration-300" role="alert">
+            <p>Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!</p>
         </div>
 
-        <div id="calendar-container" style="display:none;">
+        <div id="success-message" class="hidden text-center bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6 rounded-lg font-medium transition duration-300" role="alert">
+            <!-- A sikeres regisztráció üzenet jelenik meg itt -->
+        </div>
+
+        <!-- Fő Tartalom: Regisztráció és Bejelentkezés Kártyák -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            
+            <!-- 1. Regisztrációs Kártya -->
+            <div class="card p-8 rounded-2xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Diák Regisztráció</h2>
+                <p class="text-gray-600 mb-6">Hozz létre egy fiókot és utána mehet a móka!</p>
+
+                <form id="register-form" class="space-y-4">
+                    <div class="space-y-1">
+                        <label for="reg-name" class="block text-sm font-medium text-gray-700">Teljes Név</label>
+                        <input type="text" id="reg-name" name="name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label for="reg-email" class="block text-sm font-medium text-gray-700">E-mail cím</label>
+                        <input type="email" id="reg-email" name="email" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="reg-password" class="block text-sm font-medium text-gray-700">Jelszó</label>
+                        <input type="password" id="reg-password" name="password" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="reg-password-confirm" class="block text-sm font-medium text-gray-700">Jelszó megerősítése</label>
+                        <input type="password" id="reg-password-confirm" name="password-confirm" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 shadow-md">
+                        Regisztráció
+                    </button>
+                </form>
             </div>
-    </main>
-    <script src="app.js"></script>
+
+            <!-- 2. Bejelentkezési Kártya -->
+            <div class="card p-8 rounded-2xl">
+                <h2 class="text-3xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Bejelentkezés</h2>
+                <p class="text-gray-600 mb-6">Jó, hogy itt vagy! Jelentkezz be újra!</p>
+                
+                <form id="login-form" class="space-y-4">
+                    <div class="space-y-1">
+                        <label for="login-username" class="block text-sm font-medium text-gray-700">Felhasználónév</label>
+                        <input type="text" id="login-username" name="username" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label for="login-password" class="block text-sm font-medium text-gray-700">Jelszó</label>
+                        <input type="password" id="login-password" name="password" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-600 text-white p-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 shadow-md">
+                        Bejelentkezés
+                    </button>
+                </form>
+            </div>
+
+        </div> <!-- Grid end -->
+    </div> <!-- Main container end -->
+
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000';
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+
+        function showMessage(element, message, isError = false) {
+            // Elrejti az összes üzenetet
+            errorMessage.classList.add('hidden');
+            successMessage.classList.add('hidden');
+
+            // Megjeleníti a kért üzenetet
+            element.innerHTML = `<p>${message}</p>`;
+            element.classList.remove('hidden');
+            
+            // Ha sikeres, 5 másodperc után elrejti
+            if (!isError) {
+                setTimeout(() => {
+                    element.classList.add('hidden');
+                }, 5000);
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // FETCH SEGÉDFÜGGVÉNY: POST kérés a backend-hez
+        // -------------------------------------------------------------------
+        async function postData(endpoint, data) {
+            try {
+                const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(data),
+                });
+
+                if (!response.ok) {
+                    // Ha a backend hibakódot (pl. 400, 401) küld
+                    const errorJson = await response.json();
+                    showMessage(errorMessage, errorJson.hiba || 'Ismeretlen hiba történt a regisztráció/bejelentkezés során.', true);
+                    return null;
+                }
+
+                return await response.json();
+
+            } catch (error) {
+                // Ha a szerver nem érhető el (pl. nem fut)
+                showMessage(errorMessage, 'Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!', true);
+                console.error('Fetch hiba:', error);
+                return null;
+            }
+        }
+
+        // -------------------------------------------------------------------
+        // 1. REGISZTRÁCIÓ KEZELÉSE
+        // -------------------------------------------------------------------
+        document.getElementById('register-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const name = document.getElementById('reg-name').value;
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const passwordConfirm = document.getElementById('reg-password-confirm').value;
+
+            // Jelszó ellenőrzés a frontend oldalon
+            if (password !== passwordConfirm) {
+                showMessage(errorMessage, 'A jelszavak nem egyeznek!', true);
+                return;
+            }
+
+            const data = { name, email, password };
+            const result = await postData('register', data);
+
+            if (result) {
+                // Sikeres regisztráció esetén
+                const successMsg = `Sikeres regisztráció! A felhasználóneved: <strong>${result.felhasznalonev}</strong>. Kérlek, jelentkezz be!`;
+                showMessage(successMessage, successMsg, false);
+                
+                // Bejelentkezési űrlap feltöltése az automatikusan generált felhasználónévvel
+                document.getElementById('login-username').value = result.felhasznalonev;
+                
+                // Regisztrációs űrlap törlése
+                this.reset();
+            }
+        });
+
+        // -------------------------------------------------------------------
+        // 2. BEJELENTKEZÉS KEZELÉSE
+        // -------------------------------------------------------------------
+        document.getElementById('login-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+
+            const data = { username, password };
+            const result = await postData('login', data);
+
+            if (result) {
+                // Sikeres bejelentkezés esetén
+                showMessage(successMessage, `Üdvözöllek, ${result.username}! Sikeres bejelentkezés.`, false);
+                
+                // Mivel még nincs naptár oldalunk, ideiglenesen elmentjük a felhasználói adatokat, és üdvözöljük.
+                // KÉSŐBB: Átirányítás a naptár oldalra
+                localStorage.setItem('user_id', result.user_id);
+                localStorage.setItem('username', result.username);
+
+                // Ideiglenes átirányítás a "Naptár" nézetre (ami még nincs kész)
+                renderCalendarPage(result.username);
+            }
+        });
+        
+        // -------------------------------------------------------------------
+        // IDEIGLENES: A NAPTÁR OLDAL MEGJELENÍTÉSE (Még a fő feladat)
+        // -------------------------------------------------------------------
+        function renderCalendarPage(username) {
+            const body = document.querySelector('body');
+            body.innerHTML = `
+                <div class="main-container text-center">
+                    <h1 class="text-6xl font-extrabold text-white mt-20">Üdvözlünk, ${username}!</h1>
+                    <p class="text-xl text-white mt-4">A naptár oldal fejlesztés alatt áll. Készen állsz a folytatásra?</p>
+                    <button onclick="window.location.reload()" class="mt-8 bg-yellow-400 text-gray-900 p-4 rounded-full font-bold hover:bg-yellow-500 transition duration-300 shadow-lg">
+                        Vissza a bejelentkezéshez
+                    </button>
+                </div>
+            `;
+            body.style.backgroundImage = 'linear-gradient(to right top, #2f5f6e, #4c8a8c, #70b4a4, #9be1b7, #ccffcd)';
+        }
+
+    </script>
 </body>
 </html>
+s

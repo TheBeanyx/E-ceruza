@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-ceruza - Dashboard</title>
+    <title>E-ceruza - Dashboard / Feladatok</title> 
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
             background-color: #f3f4f6;
-            background-image: linear-gradient(to bottom right, #1d4ed8, #4f46e5, #7c3aed); 
+            background-image: linear-gradient(to bottom right, #1d4ed8, #4f46e5, #7c3aed);
             min-height: 100vh;
             padding: 2rem 0;
         }
@@ -23,24 +23,49 @@
             box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
         /* Egyedi CSS a feladat prioritás színekhez */
-        .priority-dolgozat { background-color: #ffedd5; border-color: #f97316; } 
-        .priority-hazifeladat { background-color: #e0e7ff; border-color: #4f46e5; } 
-        .priority-beadandofeladat { background-color: #ccfbf1; border-color: #14b8a6; } 
-        .priority-egyebfeljegyzesek { background-color: #f1f5f9; border-color: #64748b; } 
+        .priority-dolgozat { background-color: #ffedd5; border-color: #f97316; }
+        .priority-hazifeladat { background-color: #e0e7ff; border-color: #4f46e5; }
+        .priority-beadandofeladat { background-color: #ccfbf1; border-color: #14b8a6; }
+        .priority-egyebfeljegyzesek { background-color: #f1f5f9; border-color: #64748b; }
 
-        /* CSS a csevegéshez (Buborékok) */
+        /* JAVÍTOTT: CSS a csevegéshez (Jobb kontraszt és tagolás maradt) */
         .chat-bubble-mine {
-            background-color: #3b82f6; 
+            background-color: #3b82f6; /* Kék */
             color: white;
             align-self: flex-end;
-            margin-left: auto; 
+            margin-left: auto;
         }
         .chat-bubble-other {
-            background-color: #e5e7eb; 
-            color: #1f2937; 
+            background-color: #e5e7eb; /* Világosszürke */
+            color: #000000; /* MÉG SÖTÉTEBB SZÖVEG a maximális kontrasztért */
             align-self: flex-start;
-            margin-right: auto; 
+            margin-right: auto;
         }
+        
+        /* JAVÍTÁS: Növeltük a line-height-et a jobb olvashatóságért buborékon belül */
+        .chat-bubble-mine .message-content, .chat-bubble-other .message-content {
+            line-height: 1.6; /* Jelentősen növelt sorszélesség */
+            padding-bottom: 5px; 
+            white-space: pre-wrap; /* Kezeli a sortöréseket, ha vannak */
+        }
+
+        /* Javítás: A görgethető üzenet lista magassága és padding */
+        #messages-list {
+            height: 100%; 
+            min-height: 100px; 
+            max-height: 40vh; 
+            padding: 1rem; 
+        }
+        
+        /* Javítás: Nagyobb csevegőablak megjelenítés */
+        #chat-modal .modal-content-wrapper {
+            max-height: 90vh; 
+            max-width: 800px; 
+            width: 90%;
+            overflow: hidden; 
+        }
+        
+        /* Eltávolítottuk a scroll-button CSS-t */
     </style>
 </head>
 <body>
@@ -101,6 +126,11 @@
                         <textarea id="task-description" name="description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
                     </div>
                     
+                    <div class="space-y-1">
+                        <label for="task-online-link" class="block text-sm font-medium text-gray-700">Online Link (opcionális)</label>
+                        <input type="url" id="task-online-link" name="online_link" placeholder="Pl: https://classroom.google.com/..." class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+
                     <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200 shadow-md">
                         Feladat Mentése
                     </button>
@@ -115,24 +145,25 @@
             </div>
 
         </div>
-    </div> 
+    </div>
     
     <div id="chat-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-xl md:max-w-2xl lg:max-w-3xl overflow-hidden" style="max-height: 80vh;"> 
-            <div class="p-6 border-b flex justify-between items-center">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-xl md:max-w-2xl lg:max-w-3xl flex flex-col modal-content-wrapper">
+            
+            <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
                 <h3 class="text-2xl font-bold text-gray-800">Privát Üzenet Előzmények</h3>
                 <button id="close-chat-modal" class="text-gray-400 hover:text-gray-600">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
             
-            <div class="p-6 pb-0">
-                <div class="overflow-y-auto mb-4 p-4 border rounded-lg bg-gray-50 space-y-4" id="messages-list" style="height: 40vh;">
-                    <p class="text-gray-500 text-center text-sm">Nincsenek üzenet előzmények.</p>
+            <div class="flex-grow min-h-0 p-6 pb-0">
+                <div class="overflow-y-auto h-full bg-gray-50 space-y-4 rounded-lg" id="messages-list">
+                    <p class="text-gray-500 text-center text-sm py-10">Nincsenek üzenet előzmények.</p>
                 </div>
             </div>
 
-            <div class="p-6 pt-4 border-t">
+            <div class="p-6 pt-4 border-t flex-shrink-0">
                 <h4 class="text-lg font-semibold mb-3 border-b pb-1">Új Üzenet Küldése</h4>
                 <form id="send-message-form" class="space-y-3">
                     <input type="text" id="recipient-username" placeholder="Címzett felhasználóneve (pl. buzás_benedek)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
@@ -165,7 +196,7 @@
         
         const userId = localStorage.getItem('user_id');
         const username = localStorage.getItem('username');
-        const fullName = localStorage.getItem('full_name'); 
+        const fullName = localStorage.getItem('full_name');
 
         // Globális változó a feladatok tárolására
         let globalTasks = [];
@@ -173,25 +204,27 @@
         // Azonnali ellenőrzés
         if (!userId || !username) {
             console.error("Nincs bejelentkezett felhasználó. Átirányítás az index.html-re...");
-            window.location.href = 'index.html'; 
+            window.location.href = 'index.html';
         } else {
-            document.getElementById('welcome-message').textContent = `Üdvözöllek, ${fullName || username}!`; 
+            document.getElementById('welcome-message').textContent = `Üdvözöllek, ${fullName || username}!`;
         }
         
         // -------------------------------------------------------------------
         // SEGÉDFÜGGVÉNYEK
         // -------------------------------------------------------------------
         function showMessage(element, message, isError = false) {
+            // Eltűnteti a másik üzenet típust
             if (!isError) {
-                 errorMessage.classList.add('hidden');
+                errorMessage.classList.add('hidden');
             } else {
-                 successMessage.classList.add('hidden');
+                successMessage.classList.add('hidden');
             }
 
             element.innerHTML = `<p>${message}</p>`;
             element.classList.remove('hidden');
             
-            if (!isError && element.id !== 'success-message') {
+            // Rejtés csak a success/nem error üzeneteknél 5 másodperc múlva
+            if (!isError && element.id !== 'error-message') {
                 setTimeout(() => {
                     element.classList.add('hidden');
                 }, 5000);
@@ -210,25 +243,25 @@
             document.getElementById('task-id-to-edit').value = '';
             
             formTitle.textContent = 'Új Feladat';
-            submitButton.textContent = 'Feladat Mentése'; 
+            submitButton.textContent = 'Feladat Mentése';
         }
 
-        // Kijelentkezés 
+        // Kijelentkezés
         document.getElementById('logout-button').addEventListener('click', () => {
             localStorage.removeItem('user_id');
             localStorage.removeItem('username');
-            localStorage.removeItem('full_name'); 
+            localStorage.removeItem('full_name');
             
             showMessage(successMessage, 'Sikeresen kijelentkeztél. Átirányítás a bejelentkezési oldalra...', false);
             
             // 2 másodperc múlva átirányítunk.
             setTimeout(() => {
-                window.location.href = 'index.html'; 
+                window.location.href = 'index.html';
             }, 2000);
         });
 
         // -------------------------------------------------------------------
-        // 1. FELADATOK LISTÁZÁSA ÉS MEGJELENÍTÉSE
+        // 1. FELADATOK LISTÁZÁSA ÉS MEGJELENÍTÉSE (VÁLTOZATLAN)
         // -------------------------------------------------------------------
         
         function getTypeClass(type) {
@@ -248,7 +281,7 @@
         
         async function fetchTasks() {
             if (globalTasks.length === 0) {
-                 tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
+                tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
             }
 
             if (!userId) {
@@ -257,16 +290,14 @@
             }
 
             try {
-                // ITT HASZNÁLJA a /tasks/<public_id> útvonalat
                 const response = await fetch(`${API_BASE_URL}/tasks/${userId}`);
                 
                 if (!response.ok) {
-                    // Ha 404 vagy más hiba, akkor hiba történt a lekérdezés közben
                     throw new Error('Hiba történt a feladatok lekérdezése közben.');
                 }
                 
                 const tasks = await response.json();
-                globalTasks = tasks; 
+                globalTasks = tasks;
                 renderTasks(tasks);
                 
                 errorMessage.classList.add('hidden');
@@ -282,12 +313,12 @@
         }
 
         function renderTasks(tasks) {
-            tasksList.innerHTML = ''; 
+            tasksList.innerHTML = '';
             
             const now = new Date();
             const upcomingTasks = tasks.filter(task => {
                 const deadline = new Date(task.deadline);
-                return deadline > now; 
+                return deadline > now;
             });
 
 
@@ -302,7 +333,7 @@
                 const typeClass = getTypeClass(task.type);
 
                 const taskElement = document.createElement('div');
-                taskElement.className = `p-5 rounded-lg ${typeClass} shadow-lg flex justify-between items-start`; 
+                taskElement.className = `p-5 rounded-lg ${typeClass} shadow-lg flex justify-between items-start`;
                 taskElement.setAttribute('data-task-id', task.id);
                 
                 taskElement.innerHTML = `
@@ -318,6 +349,7 @@
                             <span class="font-semibold text-gray-700">Emlékeztető:</span> ${task.reminder_days} nappal korábban
                         </p>
                         ${task.description ? `<p class="text-sm text-gray-700 mt-3 border-t pt-2">${task.description}</p>` : ''}
+                        ${task.online_link ? `<p class="text-sm text-blue-600 mt-1"><a href="${task.online_link}" target="_blank" class="hover:underline font-medium">Online Link Megnyitása</a></p>` : ''}
                     </div>
                     <div class="flex space-x-2 ml-4 pt-1">
                         <button class="edit-task-btn text-gray-500 hover:text-blue-600 transition duration-150" data-id="${task.id}">
@@ -343,22 +375,23 @@
             const taskId = event.currentTarget.getAttribute('data-id');
             const taskIdNumber = parseInt(taskId);
 
-            const task = globalTasks.find(t => t.id === taskIdNumber); 
+            const task = globalTasks.find(t => t.id === taskIdNumber);
 
             if (!task) {
                 showMessage(errorMessage, `Hiba: A feladat (ID: ${taskId}) nem található a memóriában.`, true);
                 return;
             }
 
-            document.getElementById('task-id-to-edit').value = task.id; 
+            document.getElementById('task-id-to-edit').value = task.id;
             document.getElementById('task-title').value = task.title;
             document.getElementById('task-type').value = task.type;
-            document.getElementById('task-deadline').value = task.deadline.slice(0, 16); 
+            document.getElementById('task-deadline').value = task.deadline.slice(0, 16);
             document.getElementById('task-reminder').value = task.reminder_days;
             document.getElementById('task-description').value = task.description || '';
+            document.getElementById('task-online-link').value = task.online_link || ''; 
 
             formTitle.textContent = `Feladat Módosítása: ${task.title}`;
-            submitButton.textContent = 'Módosítás Mentése'; 
+            submitButton.textContent = 'Módosítás Mentése';
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -373,17 +406,17 @@
             }
 
             const taskIdToEdit = document.getElementById('task-id-to-edit').value;
-            const isEditing = !!taskIdToEdit; 
-            let oldTaskTitle = ''; 
+            const isEditing = !!taskIdToEdit;
+            let oldTaskTitle = '';
 
             const taskData = {
                 user_id: userId,
                 title: document.getElementById('task-title').value,
                 type: document.getElementById('task-type').value,
-                deadline: deadlineInput + ':00', 
+                deadline: deadlineInput + ':00',
                 reminder_days: parseInt(document.getElementById('task-reminder').value),
                 description: document.getElementById('task-description').value,
-                online_link: null 
+                online_link: document.getElementById('task-online-link').value || null 
             };
 
             if (isEditing) {
@@ -420,13 +453,13 @@
                 }
 
                 if (isEditing) {
-                    showMessage(successMessage, `Feladat sikeresen módosítva: "${taskData.title}"`, false); 
+                    showMessage(successMessage, `Feladat sikeresen módosítva: "${taskData.title}"`, false);
                 } else {
                     showMessage(successMessage, result.uzenet, false);
                 }
                 
-                resetFormToAddTask(); 
-                fetchTasks(); 
+                resetFormToAddTask();
+                fetchTasks();
             } catch (error) {
                 showMessage(errorMessage, `Hiba történt a szerverrel való kommunikáció során (Feladat létrehozása/módosítása). Kérjük, ellenőrizze a háttérrendszer (backend) elérhetőségét.`, true);
             }
@@ -448,44 +481,46 @@
                 }
 
                 showMessage(successMessage, result.uzenet, false);
-                fetchTasks(); 
+                fetchTasks();
             } catch (error) {
                  showMessage(errorMessage, 'Hiba történt a szerverrel való kommunikáció során (Feladat törlése). Kérjük, ellenőrizze a háttérrendszer (backend) elérhetőségét.', true);
             }
         }
 
         // -------------------------------------------------------------------
-        // 2. CSEVEGÉS FUNKCIÓK (JAVÍTOTT: Előzmények és Méret)
+        // 2. CSEVEGÉS FUNKCIÓK (Görgetőgombok nélkül)
         // -------------------------------------------------------------------
+        
+        // Eltávolítottuk a scrollToTop és scrollToBottom funkciókat
 
         chatIcon.addEventListener('click', () => {
             chatModal.classList.remove('hidden');
-            chatModal.classList.add('flex'); // biztosítja a helyes megjelenítést
-            fetchMessages(); 
+            chatModal.classList.add('flex'); 
+            fetchMessages();
         });
 
         closeChatButton.addEventListener('click', () => {
             chatModal.classList.add('hidden');
             chatModal.classList.remove('flex');
         });
+
+        // Eltávolítottuk a görgetőgombok eseménykezelését
         
         // Üzenetek listázása és olvasatlan darabszám frissítése
         async function fetchMessages() {
             if (!userId) return;
 
             try {
-                // ITT HASZNÁLJA a /messages/<public_id> útvonalat
                 const response = await fetch(`${API_BASE_URL}/messages/${userId}`);
                 if (!response.ok) throw new Error('Hiba az üzenetek lekérdezése közben.');
                 
                 const allMessages = await response.json();
                 
-                // Megszámoljuk az OLVASATLAN (bejövő) üzeneteket
                 const unreadMessagesCount = allMessages.filter(msg => !msg.is_sent_by_me && !msg.is_read).length;
 
                 renderMessages(allMessages);
 
-                // Olvasatlan üzenetek számának frissítése 
+                // Olvasatlan üzenetek számának frissítése
                 if (unreadMessagesCount > 0) {
                     unreadCountSpan.textContent = unreadMessagesCount;
                     unreadCountSpan.classList.remove('hidden');
@@ -499,7 +534,7 @@
         }
 
         function renderMessages(messages) {
-            messagesList.innerHTML = ''; 
+            messagesList.innerHTML = '';
             
             if (messages.length === 0) {
                 messagesList.innerHTML = '<p class="text-gray-500 text-center text-sm py-10">Nincsenek üzenet előzmények.</p>';
@@ -508,28 +543,27 @@
             
             messages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
 
-
             messages.forEach(message => {
                 const isMine = message.is_sent_by_me;
                 const bubbleClass = isMine ? 'chat-bubble-mine' : 'chat-bubble-other';
                 
-                const senderRecipientInfo = isMine 
-                    ? `Címzett: ${message.recipient_username}` 
+                const senderRecipientInfo = isMine
+                    ? `Címzett: ${message.recipient_username}`
                     : `Feladó: ${message.sender_username}`;
                 
-                // Csak az olvasatlan bejövő üzeneteken van olvasottnak jelölés gomb
                 const isUnreadIncoming = !isMine && !message.is_read;
 
                 const messageElement = document.createElement('div');
-                messageElement.className = `flex mb-3 ${isMine ? 'justify-end' : 'justify-start'}`;
+                messageElement.className = `flex mt-4 ${isMine ? 'justify-end' : 'justify-start'}`;
                 
                 messageElement.innerHTML = `
-                    <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass} ${isUnreadIncoming ? 'border-2 border-red-500' : ''}" data-id="${message.id}">
-                        <p class="text-xs font-medium ${isMine ? 'text-blue-100' : 'text-gray-600'} mb-1 border-b ${isMine ? 'border-blue-400' : 'border-gray-300'} pb-1">
+                    <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-lg ${bubbleClass} ${isUnreadIncoming ? 'border-2 border-red-500' : ''}" data-id="${message.id}">
+                        <p class="text-xs font-medium ${isMine ? 'text-blue-100' : 'text-gray-600'} mb-1 border-b ${isMine ? 'border-blue-400' : 'border-gray-400'} pb-1">
                             ${senderRecipientInfo}
                         </p>
-                        <p class="text-sm">${message.content}</p>
-                        <div class="flex items-center ${isUnreadIncoming ? 'justify-between' : 'justify-end'} mt-2">
+                        <p class="text-sm whitespace-pre-wrap message-content">${message.content}</p> 
+                        
+                        <div class="flex items-center ${isUnreadIncoming ? 'justify-between' : 'justify-end'} mt-2 pt-1 border-t ${isMine ? 'border-blue-400' : 'border-gray-400'}">
                              <p class="text-xs ${isMine ? 'text-blue-200' : 'text-gray-500'}">${formatDeadline(message.timestamp)}</p>
                             ${isUnreadIncoming ? `
                                 <button class="mark-read-btn text-xs text-red-100 hover:text-white ml-4 p-1 rounded-full bg-red-500 hover:bg-red-700" data-id="${message.id}" title="Olvasottnak jelölés (Törlés)">
@@ -542,7 +576,7 @@
                 messagesList.appendChild(messageElement);
             });
             
-            // Görgetés az aljára
+            // Görgetés az aljára (csak betöltéskor)
             messagesList.scrollTop = messagesList.scrollHeight;
 
             document.querySelectorAll('.mark-read-btn').forEach(button => {
@@ -563,20 +597,18 @@
             }
 
             try {
-                // A DELETE helyett a PUT vagy PATCH lenne a megfelelő egy "is_read" flag átállítására, de a korábbi kód DELETE-et használt. 
-                // A kódot úgy hagyom, ahogy küldted, de a funkciója a DELETE API hívás.
                 const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
                     method: 'DELETE'
                 });
 
                 if (!response.ok) throw new Error('Hiba az üzenet törlésekor.');
 
-                fetchMessages(); 
+                fetchMessages();
                 showMessage(successMessage, 'Üzenet olvasottként megjelölve.', false);
 
             } catch (error) {
                 if (bubble) {
-                    bubble.style.opacity = '1'; 
+                    bubble.style.opacity = '1';
                 }
                  showMessage(errorMessage, 'Hiba történt az üzenet olvasottként jelölésekor.', true);
             }
@@ -590,7 +622,7 @@
             const content = document.getElementById('message-content').value;
 
             const messageData = {
-                sender_id: userId, 
+                sender_id: userId,
                 recipient_username: recipientUsername,
                 content: content
             };
@@ -605,14 +637,20 @@
                 const result = await response.json();
 
                 if (!response.ok) {
-                    showMessage(errorMessage, result.hiba || 'Hiba történt az üzenet küldésekor. Ellenőrizd a felhasználónevet!', true);
+                    const errorMsg = result.hiba && result.hiba.includes('No user found')
+                        ? 'Hiba: Nincs ilyen felhasználó. Kérjük, ellenőrizze a felhasználónevet!'
+                        : (result.hiba || 'Hiba történt az üzenet küldésekor.');
+                        
+                    showMessage(errorMessage, errorMsg, true);
                     return;
                 }
 
                 showMessage(successMessage, result.uzenet, false);
-                sendMessageForm.reset(); 
+                sendMessageForm.reset();
+                
+                // Frissítés és görgetés az új üzenethez
                 fetchMessages(); 
-
+                
             } catch (error) {
                 showMessage(errorMessage, `Hiba történt a szerverrel való kommunikáció során (Üzenetküldés).`, true);
             }
@@ -625,9 +663,13 @@
 
         // Automatikus frissítés 10 másodpercenként (10000 ms)
         setInterval(() => {
-            fetchTasks();    
-            fetchMessages(); 
-        }, 10000); 
+            fetchTasks();
+            
+            // Csak akkor hívjuk meg a fetchMessages-t, ha a modál nyitva van.
+            if (!chatModal.classList.contains('hidden')) {
+                fetchMessages();
+            }
+        }, 10000);
     </script>
 </body>
 </html>

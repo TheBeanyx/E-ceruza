@@ -65,6 +65,8 @@ class Message(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 # --- Adatbázis Létrehozása ---
+# Ha a tábla szerkezete megváltozott, és hibát kapsz indításkor, 
+# töröld a 'e_ceruza.db' fájlt, és indítsd újra a szervert!
 with app.app_context():
     db.create_all()
 
@@ -157,6 +159,7 @@ def create_task():
     return jsonify({'uzenet': 'A feladat sikeresen létrehozva!', 'task_id': new_task.id}), 201
 
 # --- FELADATOK LISTÁZÁSA FELHASZNÁLÓNKÉNT ---
+# AZ ÚTVONAL HELYESEN FOGADJA A public_id PARAMÉTERT
 @app.route('/tasks/<public_id>', methods=['GET'])
 def list_tasks(public_id):
     user = User.query.filter_by(public_id=public_id).first()
@@ -173,9 +176,6 @@ def delete_task(task_id):
     task = Task.query.get(task_id)
     if not task:
         return jsonify({'hiba': 'A feladat nem található.'}), 404
-
-    # JÓ GYAKORLAT: Ellenőrizd, hogy a törlést kérő felhasználó tulajdonosa-e a feladatnak.
-    # Ezt a frontend most nem küldi, de a public_id-t le lehetne kérni a headerekből.
     
     try:
         db.session.delete(task)
@@ -225,7 +225,7 @@ def send_message():
     return jsonify({'uzenet': f'Üzenet sikeresen elküldve a felhasználónak: {recipient_username}'}), 201
 
 # --- ÖSSZES ÜZENET LEKÉRDEZÉSE (ELŐZMÉNYEK) ---
-# Ezt az útvonalat módosítottuk, hogy a küldött és fogadott üzeneteket is visszaadja.
+# AZ ÚTVONAL HELYESEN FOGADJA A public_id PARAMÉTERT
 @app.route('/messages/<public_id>', methods=['GET'])
 def get_messages(public_id):
     user = User.query.filter_by(public_id=public_id).first()
@@ -280,7 +280,6 @@ def get_messages(public_id):
     return jsonify(output), 200
 
 # --- ÜZENET TÖRLÉSE (Olvasottnak Jelölés) ---
-# Ez a funkció csak a bejövő üzeneteket érinti, a küldött üzeneteket megőrizzük.
 @app.route('/messages/<int:message_id>', methods=['DELETE'])
 def delete_message(message_id):
     message = Message.query.get(message_id)

@@ -51,23 +51,22 @@
 
                 <form id="register-form" class="space-y-4">
                     <div class="space-y-1">
-                        <label for="reg-name" class="block text-sm font-medium text-gray-700">Teljes Név</label>
-                        <input type="text" id="reg-name" name="name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <label for="reg-name" class="block text-sm font-medium text-gray-700">Teljes Név (Vezetéknév Keresztnév)</label>
+                        <input type="text" id="reg-name" name="name" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
                     <div class="space-y-1">
                         <label for="reg-email" class="block text-sm font-medium text-gray-700">E-mail cím</label>
-                        <input type="email" id="reg-email" name="email" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="email" id="reg-email" name="email" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
-
                     <div class="space-y-1">
                         <label for="reg-password" class="block text-sm font-medium text-gray-700">Jelszó</label>
-                        <input type="password" id="reg-password" name="password" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="password" id="reg-password" name="password" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
                     <div class="space-y-1">
                         <label for="reg-password-confirm" class="block text-sm font-medium text-gray-700">Jelszó megerősítése</label>
-                        <input type="password" id="reg-password-confirm" name="password-confirm" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="password" id="reg-password-confirm" name="password-confirm" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
                     <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 shadow-md">
@@ -102,16 +101,18 @@
         const errorMessage = document.getElementById('error-message');
         const successMessage = document.getElementById('success-message');
 
+        // Azonnali ellenőrzés
+        if (localStorage.getItem('user_id')) {
+            window.location.href = 'calendar.html'; 
+        }
+
         function showMessage(element, message, isError = false) {
-            // Elrejti az összes üzenetet
             errorMessage.classList.add('hidden');
             successMessage.classList.add('hidden');
 
-            // Megjeleníti a kért üzenetet
             element.innerHTML = `<p>${message}</p>`;
             element.classList.remove('hidden');
             
-            // Ha sikeres, 5 másodperc után elrejti
             if (!isError) {
                 setTimeout(() => {
                     element.classList.add('hidden');
@@ -119,6 +120,36 @@
             }
         }
 
+        /**
+         * Keresztnév_Vezetéknév + random 2 szám formátumban generál felhasználónevet.
+         * Pl.: Buzás Benedek -> benedek_buzas42
+         */
+        function generateUsername(fullName) {
+            // Ékezetes karakterek átalakítása (opcionális, de ajánlott)
+            const slug = fullName.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            // Szavakra bontás
+            const parts = slug.toLowerCase().split(/\s+/).filter(p => p.length > 0);
+
+            if (parts.length < 2) {
+                // Ha csak egy szó van (pl. csak egy keresztnév), kiegészítjük egy alapszóval
+                const base = parts.length > 0 ? parts[0] : 'user';
+                const randomNum = Math.floor(10 + Math.random() * 90);
+                return `${base}_account${randomNum}`;
+            }
+
+            // Feltételezés: Magyar névsorrend Vezetéknév Keresztnév
+            // Parts[0] = Vezetéknév, Parts[parts.length - 1] = Keresztnév
+            const firstName = parts[parts.length - 1]; 
+            const lastName = parts[0];
+
+            // Véletlen kétjegyű szám (10-től 99-ig)
+            const randomNum = Math.floor(10 + Math.random() * 90); 
+
+            // Formátum: keresztnév_vezetéknév + random szám
+            return `${firstName}_${lastName}${randomNum}`;
+        }
+        
         // -------------------------------------------------------------------
         // FETCH SEGÉDFÜGGVÉNY: POST kérés a backend-hez
         // -------------------------------------------------------------------
@@ -126,23 +157,19 @@
             try {
                 const response = await fetch(`${API_BASE_URL}/${endpoint}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
                 });
 
                 if (!response.ok) {
-                    // Ha a backend hibakódot (pl. 400, 401) küld
                     const errorJson = await response.json();
-                    showMessage(errorMessage, errorJson.hiba || 'Ismeretlen hiba történt a regisztráció/bejelentkezés során.', true);
+                    showMessage(errorMessage, errorJson.hiba || 'Ismeretlen hiba történt a szerverrel.', true);
                     return null;
                 }
 
                 return await response.json();
 
             } catch (error) {
-                // Ha a szerver nem érhető el (pl. nem fut)
                 showMessage(errorMessage, 'Hiba történt a szerverrel való kommunikáció során. Lehet, hogy a backend nem fut!', true);
                 console.error('Fetch hiba:', error);
                 return null;
@@ -155,27 +182,42 @@
         document.getElementById('register-form').addEventListener('submit', async function(event) {
             event.preventDefault();
             
-            const name = document.getElementById('reg-name').value;
+            const fullName = document.getElementById('reg-name').value; 
             const email = document.getElementById('reg-email').value;
             const password = document.getElementById('reg-password').value;
             const passwordConfirm = document.getElementById('reg-password-confirm').value;
+            
+            // Front-end ellenőrzések, hogy biztosan ki van-e töltve minden (bár a required segít)
+            if (!fullName || !email || !password || !passwordConfirm) {
+                 showMessage(errorMessage, 'Kérlek, töltsd ki az összes kötelező mezőt (Teljes Név, E-mail, Jelszó)!', true);
+                 return;
+            }
 
-            // Jelszó ellenőrzés a frontend oldalon
             if (password !== passwordConfirm) {
                 showMessage(errorMessage, 'A jelszavak nem egyeznek!', true);
                 return;
             }
 
-            const data = { name, email, password };
+            // KULCSFONTOSSÁGÚ: Felhasználónév generálása a teljes névből
+            const username = generateUsername(fullName); 
+
+            const data = { 
+                full_name: fullName, 
+                username: username, // EZT KÜLDI EL a backendnek
+                password: password,
+                // Az emailt elküldhetjük opcionálisan a backendnek, ha van rá adatbázis mező
+                email: email
+            };
+            
             const result = await postData('register', data);
 
             if (result) {
                 // Sikeres regisztráció esetén
-                const successMsg = `Sikeres regisztráció! A felhasználóneved: <strong>${result.felhasznalonev}</strong>. Kérlek, jelentkezz be!`;
+                const successMsg = `Sikeres regisztráció! A felhasználóneved: <strong>${result.username}</strong>. Kérlek, jelentkezz be!`;
                 showMessage(successMessage, successMsg, false);
                 
                 // Bejelentkezési űrlap feltöltése az automatikusan generált felhasználónévvel
-                document.getElementById('login-username').value = result.felhasznalonev;
+                document.getElementById('login-username').value = result.username;
                 
                 // Regisztrációs űrlap törlése
                 this.reset();
@@ -198,6 +240,7 @@
                 // Sikeres bejelentkezés esetén
                 localStorage.setItem('user_id', result.user_id);
                 localStorage.setItem('username', result.username);
+                localStorage.setItem('full_name', result.full_name); 
 
                 // ÁTIRÁNYÍTÁS A NAPTÁR OLDALRA
                 window.location.href = 'calendar.html'; 

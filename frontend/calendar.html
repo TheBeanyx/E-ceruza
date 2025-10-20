@@ -114,7 +114,10 @@
                 </div>
             </div>
 
-        </div> </div> <div id="chat-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-50 flex items-center justify-center hidden">
+        </div>
+    </div> 
+    
+    <div id="chat-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-50 flex items-center justify-center hidden">
         <div class="bg-white rounded-lg shadow-xl w-full max-w-xl md:max-w-2xl lg:max-w-3xl overflow-hidden" style="max-height: 80vh;"> 
             <div class="p-6 border-b flex justify-between items-center">
                 <h3 class="text-2xl font-bold text-gray-800">Privát Üzenet Előzmények</h3>
@@ -123,12 +126,14 @@
                 </button>
             </div>
             
-            <div class="p-6">
-                <div class="overflow-y-auto mb-6 p-4 border rounded-lg bg-white space-y-4" id="messages-list" style="height: 40vh;">
+            <div class="p-6 pb-0">
+                <div class="overflow-y-auto mb-4 p-4 border rounded-lg bg-gray-50 space-y-4" id="messages-list" style="height: 40vh;">
                     <p class="text-gray-500 text-center text-sm">Nincsenek üzenet előzmények.</p>
                 </div>
+            </div>
 
-                <h4 class="text-lg font-semibold mb-3 border-b pb-1 pt-4">Új Üzenet Küldése</h4>
+            <div class="p-6 pt-4 border-t">
+                <h4 class="text-lg font-semibold mb-3 border-b pb-1">Új Üzenet Küldése</h4>
                 <form id="send-message-form" class="space-y-3">
                     <input type="text" id="recipient-username" placeholder="Címzett felhasználóneve (pl. buzás_benedek)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                     <textarea id="message-content" rows="3" placeholder="Az üzenet tartalma..." required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
@@ -455,11 +460,13 @@
 
         chatIcon.addEventListener('click', () => {
             chatModal.classList.remove('hidden');
+            chatModal.classList.add('flex'); // biztosítja a helyes megjelenítést
             fetchMessages(); 
         });
 
         closeChatButton.addEventListener('click', () => {
             chatModal.classList.add('hidden');
+            chatModal.classList.remove('flex');
         });
         
         // Üzenetek listázása és olvasatlan darabszám frissítése
@@ -474,7 +481,7 @@
                 const allMessages = await response.json();
                 
                 // Megszámoljuk az OLVASATLAN (bejövő) üzeneteket
-                const unreadMessagesCount = allMessages.filter(msg => msg.is_sent_by_me === false).length;
+                const unreadMessagesCount = allMessages.filter(msg => !msg.is_sent_by_me && !msg.is_read).length;
 
                 renderMessages(allMessages);
 
@@ -495,7 +502,7 @@
             messagesList.innerHTML = ''; 
             
             if (messages.length === 0) {
-                messagesList.innerHTML = '<p class="text-gray-500 text-center text-sm">Nincsenek üzenet előzmények.</p>';
+                messagesList.innerHTML = '<p class="text-gray-500 text-center text-sm py-10">Nincsenek üzenet előzmények.</p>';
                 return;
             }
             
@@ -509,23 +516,26 @@
                 const senderRecipientInfo = isMine 
                     ? `Címzett: ${message.recipient_username}` 
                     : `Feladó: ${message.sender_username}`;
+                
+                // Csak az olvasatlan bejövő üzeneteken van olvasottnak jelölés gomb
+                const isUnreadIncoming = !isMine && !message.is_read;
 
                 const messageElement = document.createElement('div');
                 messageElement.className = `flex mb-3 ${isMine ? 'justify-end' : 'justify-start'}`;
                 
                 messageElement.innerHTML = `
-                    <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass}" data-id="${message.id}">
+                    <div class="max-w-xs md:max-w-md p-3 rounded-xl shadow-md ${bubbleClass} ${isUnreadIncoming ? 'border-2 border-red-500' : ''}" data-id="${message.id}">
                         <p class="text-xs font-medium ${isMine ? 'text-blue-100' : 'text-gray-600'} mb-1 border-b ${isMine ? 'border-blue-400' : 'border-gray-300'} pb-1">
                             ${senderRecipientInfo}
                         </p>
                         <p class="text-sm">${message.content}</p>
-                        <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center ${isUnreadIncoming ? 'justify-between' : 'justify-end'} mt-2">
                              <p class="text-xs ${isMine ? 'text-blue-200' : 'text-gray-500'}">${formatDeadline(message.timestamp)}</p>
-                            ${isMine ? '' : `
-                                <button class="mark-read-btn text-xs text-red-300 hover:text-red-500 ml-4 p-1 rounded-full" data-id="${message.id}" title="Olvasottnak jelölés (Törlés)">
+                            ${isUnreadIncoming ? `
+                                <button class="mark-read-btn text-xs text-red-100 hover:text-white ml-4 p-1 rounded-full bg-red-500 hover:bg-red-700" data-id="${message.id}" title="Olvasottnak jelölés (Törlés)">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                                 </button>
-                            `}
+                            ` : ''}
                         </div>
                     </div>
                 `;
@@ -553,6 +563,8 @@
             }
 
             try {
+                // A DELETE helyett a PUT vagy PATCH lenne a megfelelő egy "is_read" flag átállítására, de a korábbi kód DELETE-et használt. 
+                // A kódot úgy hagyom, ahogy küldted, de a funkciója a DELETE API hívás.
                 const response = await fetch(`${API_BASE_URL}/messages/${messageId}`, {
                     method: 'DELETE'
                 });

@@ -1,133 +1,102 @@
-import os
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
-from flask_bcrypt import Bcrypt
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
 import uuid
-from datetime import datetime
-import random 
+import datetime
 
-# --- Inicializáció ---
+# --- Konfiguráció ---
 app = Flask(__name__)
-# Lehetővé teszi a kommunikációt a frontend és a backend között
-CORS(app) 
-
-# Adatbázis konfiguráció
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///tanulo_naptar.db'
+# Itt beállíthatod a titkos kulcsot a session kezeléshez
+app.config['SECRET_KEY'] = 'a_nagyon_hosszu_es_titkos_kulcs' 
+# SQLite adatbázis beállítása
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///e_ceruza.db' 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
-bcrypt = Bcrypt(app)
+CORS(app) # Engedélyezi a Cross-Origin kéréseket a frontend számára
 
-# --- Adatbázis Modellek ---
+# --- Adatbázis Modellek (Táblák) ---
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    public_id = db.Column(db.String(50), unique=True, nullable=False)
-    name = db.Column(db.String(100), nullable=False) # Teljes név
-    email = db.Column(db.String(100), unique=True, nullable=False)
-    username = db.Column(db.String(50), unique=True, nullable=False) # Felhasználónév
-    password_hash = db.Column(db.String(256), nullable=False)
-    tasks = db.relationship('Task', backref='owner', lazy=True)
-    feedbacks = db.relationship('Feedback', backref='user_submitted', lazy=True)
-    # Kapcsolatok a csevegéshez
-    messages_sent = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
-    messages_received = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy=True)
+    public_id = db.Column(db.String(50), unique=True, default=lambda: str(uuid.uuid4()))
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    full_name = db.Column(db.String(100))
+    tasks = db.relationship('Task', backref='owner', lazy='dynamic')
+    sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy='dynamic')
+    received_messages = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy='dynamic')
 
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     title = db.Column(db.String(100), nullable=False)
-    description = db.Column(db.String(500), nullable=True)
-    task_type = db.Column(db.String(50), nullable=False) 
+    type = db.Column(db.String(50)) # Pl. Dolgozat, Házifeladat, Beadandó feladat, Egyéb feljegyzések
     deadline = db.Column(db.DateTime, nullable=False)
     reminder_days = db.Column(db.Integer, default=0)
+    description = db.Column(db.Text)
+    online_link = db.Column(db.String(255))
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-class Feedback(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True) 
-    username = db.Column(db.String(50), nullable=True) 
-    type = db.Column(db.String(50), nullable=False) # 'Bug' vagy 'Satisfaction'
-    content = db.Column(db.Text, nullable=False) 
-    rating = db.Column(db.Integer, nullable=True) # Értékelés (1-5)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-
-# ÚJ MODELL A CSEVEGÉSRE
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.owner.public_id,
+            'title': self.title,
+            'type': self.type,
+            'deadline': self.deadline.isoformat(),
+            'reminder_days': self.reminder_days,
+            'description': self.description,
+            'online_link': self.online_link
+        }
+        
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     content = db.Column(db.Text, nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    
-# --- Munkamenet kezelés: Adatbázis létrehozása és Admin felhasználó ---
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
-# Admin felhasználó adatai (ékezetesen, ahogy kérted)
-ADMIN_USERNAME = 'buzás_benedek' 
-ADMIN_PASSWORD = 'Benedek11'
-
+# --- Adatbázis Létrehozása ---
 with app.app_context():
-    # Létrehozza az adatbázist és a táblákat, ha még nem léteznek (beleértve az új Message táblát is!)
-    db.create_all() 
-    
-    # Admin felhasználó ellenőrzése és létrehozása
-    if not User.query.filter_by(username=ADMIN_USERNAME).first():
-        print(f"--- Admin user '{ADMIN_USERNAME}' creation initiated. ---")
-        hashed_admin_password = bcrypt.generate_password_hash(ADMIN_PASSWORD).decode('utf-8')
-        admin_user = User(
-            public_id=str(uuid.uuid4()),
-            name="Buzás Benedek (ADMIN)",
-            email="admin@e-ceruza.hu",
-            username=ADMIN_USERNAME,
-            password_hash=hashed_admin_password
-        )
-        db.session.add(admin_user)
-        db.session.commit()
-        print(f"--- Admin user '{ADMIN_USERNAME}' created successfully. ---")
+    db.create_all()
 
 # --- Útvonalak (API Endpoints) ---
 
+# --- REGISZTRÁCIÓ ---
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
-    full_name = data['name'].strip()
-    name_parts = full_name.lower().split()
-    
-    # Felhasználónév generálása a névből
-    if len(name_parts) >= 2:
-        first_name = name_parts[0]
-        last_name = name_parts[-1] 
-    else:
-        first_name = "uj"
-        last_name = "felhasznalo"
-        
-    base_username_str = f"{first_name}_{last_name}"
-    username = base_username_str
-    
-    # Egyedi felhasználónév biztosítása
-    while User.query.filter_by(username=username).first():
-        random_number = random.randint(10, 99) 
-        username = f"{base_username_str}{random_number}"
+    username = data.get('username')
+    password = data.get('password')
+    full_name = data.get('full_name')
 
-    # Jelszó hashelése és felhasználó létrehozása
-    hashed_password = bcrypt.generate_password_hash(data['password']).decode('utf-8')
-    new_user = User(
-        public_id=str(uuid.uuid4()),
-        name=full_name,
-        email=data['email'],
-        username=username,
-        password_hash=hashed_password
-    )
-    
-    try:
-        db.session.add(new_user)
-        db.session.commit()
-        return jsonify({'uzenet': 'Sikeres regisztráció!', 'felhasznalonev': username}), 201
-    except Exception:
-        db.session.rollback()
-        return jsonify({'hiba': 'Az e-mail cím már használatban van.'}), 400
+    if not username or not password or not full_name:
+        return jsonify({'hiba': 'Hiányzó felhasználónév, jelszó vagy teljes név.'}), 400
 
+    if User.query.filter_by(username=username).first():
+        return jsonify({'hiba': 'Ez a felhasználónév már foglalt.'}), 409
+
+    new_user = User(username=username, full_name=full_name)
+    new_user.set_password(password)
+
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({
+        'uzenet': 'Sikeres regisztráció!', 
+        'user_id': new_user.public_id,
+        'username': new_user.username
+    }), 201
+
+# --- BEJELENTKEZÉS ---
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -136,244 +105,198 @@ def login():
 
     user = User.query.filter_by(username=username).first()
 
-    if not user or not bcrypt.check_password_hash(user.password_hash, password):
-        return jsonify({'hiba': 'Érvénytelen felhasználónév vagy jelszó'}), 401
-    
-    # Admin jogosultság ellenőrzése
-    is_admin = (username == ADMIN_USERNAME) 
+    if not user or not user.check_password(password):
+        return jsonify({'hiba': 'Érvénytelen felhasználónév vagy jelszó.'}), 401
 
     return jsonify({
-        'uzenet': 'Sikeres bejelentkezés',
+        'uzenet': 'Sikeres bejelentkezés!',
         'user_id': user.public_id,
         'username': user.username,
-        'name': user.name,
-        'is_admin': is_admin
+        'full_name': user.full_name
     }), 200
 
-# --- FELHASZNÁLÓ FRISSÍTÉSE (Jelszó és Név) ---
-@app.route('/user/update', methods=['PUT'])
-def update_user():
-    data = request.get_json()
-    public_id = data.get('user_id')
-    
-    user = User.query.filter_by(public_id=public_id).first()
-    if not user:
-        return jsonify({'hiba': 'A felhasználó nem található.'}), 404
+# --------------------------------------------------------------------------------------------------
+# --- FELADAT KEZELÉS ---
+# --------------------------------------------------------------------------------------------------
 
-    try:
-        if 'new_name' in data and data['new_name'].strip():
-            user.name = data['new_name'].strip()
-        
-        if 'new_password' in data and data['new_password']:
-            if len(data['new_password']) < 6:
-                 return jsonify({'hiba': 'A jelszónak legalább 6 karakter hosszúnak kell lennie.'}), 400
-            user.password_hash = bcrypt.generate_password_hash(data['new_password']).decode('utf-8')
-
-        db.session.commit()
-        return jsonify({'uzenet': 'Sikeres módosítás!', 'new_name': user.name}), 200
-    except Exception as e:
-        db.session.rollback()
-        print(f"Hiba a felhasználó frissítésekor: {e}")
-        return jsonify({'hiba': 'Hiba történt a felhasználói adatok frissítésekor.'}), 500
-
-# --- FEEDBACK / KÉRDŐÍV ÚTVONALAK ---
-
-@app.route('/feedback', methods=['POST'])
-def submit_feedback():
-    data = request.get_json()
-    
-    public_id = data.get('user_id')
-    user = User.query.filter_by(public_id=public_id).first() if public_id else None
-    
-    try:
-        new_feedback = Feedback(
-            user_id=user.id if user else None,
-            username=user.username if user else 'Anonymous',
-            type=data['type'], 
-            content=data['content'],
-            rating=data.get('rating') 
-        )
-        db.session.add(new_feedback)
-        db.session.commit()
-        return jsonify({'uzenet': 'Visszajelzés sikeresen rögzítve! Köszönjük a segítséged!'}), 201
-    except Exception as e:
-        db.session.rollback()
-        print(f"Hiba a feedback mentésekor: {e}")
-        return jsonify({'hiba': 'Hiba történt a visszajelzés rögzítésekor.'}), 400
-
-@app.route('/feedback/all', methods=['GET'])
-def get_all_feedback():
-    public_id = request.args.get('user_id')
-    
-    # Admin jogosultság ellenőrzése
-    user = User.query.filter_by(public_id=public_id).first()
-    if not user or user.username != ADMIN_USERNAME:
-        return jsonify({'hiba': 'Nincs jogosultság a válaszok megtekintéséhez.'}), 403
-
-    feedbacks = Feedback.query.order_by(Feedback.timestamp.desc()).all()
-    
-    result = []
-    for f in feedbacks:
-        result.append({
-            'id': f.id,
-            'type': f.type,
-            'user': f.username,
-            'content': f.content,
-            'rating': f.rating,
-            'timestamp': f.timestamp.isoformat()
-        })
-        
-    return jsonify(result)
-
-
-# --- FELADAT ÚTVONALAK ---
+# --- ÚJ FELADAT LÉTREHOZÁSA ---
 @app.route('/tasks', methods=['POST'])
-def add_task():
+def create_task():
     data = request.get_json()
-    public_id = data.get('user_id')
+    user_public_id = data.get('user_id')
+    title = data.get('title')
+    deadline_str = data.get('deadline')
     
-    user = User.query.filter_by(public_id=public_id).first()
+    user = User.query.filter_by(public_id=user_public_id).first()
     if not user:
-        return jsonify({'hiba': 'A felhasználó nem található.'}), 404
+        return jsonify({'hiba': 'Felhasználó nem található.'}), 404
+
+    if not all([title, deadline_str]):
+        return jsonify({'hiba': 'Hiányzó mezők: cím, határidő.'}), 400
 
     try:
-        # Dátum formátum konvertálása, hogy a SQLite-ban is helyes legyen
-        deadline_dt = datetime.fromisoformat(data['deadline'].replace('Z', '+00:00'))
+        deadline = datetime.datetime.fromisoformat(deadline_str)
+    except ValueError:
+        return jsonify({'hiba': 'Érvénytelen határidő formátum.'}), 400
+    
+    # Ha a határidő a múltban van (csak egy egyszerű ellenőrzés)
+    if deadline < datetime.datetime.utcnow():
+        return jsonify({'hiba': 'A határidő nem lehet a múltban.'}), 400
 
-        new_task = Task(
-            user_id=user.id,
-            title=data['title'],
-            description=data.get('description'),
-            task_type=data['type'],
-            deadline=deadline_dt,
-            reminder_days=data['reminder_days']
-        )
-        db.session.add(new_task)
-        db.session.commit()
-        return jsonify({'uzenet': 'Feladat sikeresen mentve!'}), 201
-    except Exception as e:
-        db.session.rollback()
-        print(f"Hiba a feladat hozzáadásakor: {e}")
-        return jsonify({'hiba': f'Hiba a feladat mentésekor. Ellenőrizd a dátum formátumot. {e}'}), 400
+    new_task = Task(
+        user_id=user.id,
+        title=title,
+        type=data.get('type', 'Egyéb feljegyzések'),
+        deadline=deadline,
+        reminder_days=data.get('reminder_days', 0),
+        description=data.get('description')
+    )
 
+    db.session.add(new_task)
+    db.session.commit()
+    return jsonify({'uzenet': 'A feladat sikeresen létrehozva!', 'task_id': new_task.id}), 201
+
+# --- FELADATOK LISTÁZÁSA FELHASZNÁLÓNKÉNT ---
 @app.route('/tasks/<public_id>', methods=['GET'])
-def get_tasks(public_id):
+def list_tasks(public_id):
     user = User.query.filter_by(public_id=public_id).first()
     if not user:
-        return jsonify({'hiba': 'A felhasználó nem található.'}), 404
+        return jsonify({'hiba': 'Felhasználó nem található.'}), 404
 
-    # Feladatok lekérdezése, határidő szerint rendezve
-    tasks = Task.query.filter_by(user_id=user.id).order_by(Task.deadline).all()
+    tasks = user.tasks.order_by(Task.deadline).all() # Rendezés határidő szerint
     
-    result = []
-    for task in tasks:
-        task_data = {}
-        task_data['id'] = task.id
-        task_data['title'] = task.title
-        task_data['description'] = task.description
-        task_data['type'] = task.task_type
-        # Dátum ISO formátumban küldése
-        task_data['deadline'] = task.deadline.isoformat() 
-        task_data['reminder_days'] = task.reminder_days
-        result.append(task_data)
-        
-    return jsonify(result)
+    return jsonify([task.to_dict() for task in tasks]), 200
 
-@app.route('/tasks/<task_id>', methods=['DELETE'])
+# --- FELADAT TÖRLÉSE ---
+@app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
-    task = Task.query.filter_by(id=task_id).first()
-
+    task = Task.query.get(task_id)
     if not task:
         return jsonify({'hiba': 'A feladat nem található.'}), 404
 
+    # JÓ GYAKORLAT: Ellenőrizd, hogy a törlést kérő felhasználó tulajdonosa-e a feladatnak.
+    # Ezt a frontend most nem küldi, de a public_id-t le lehetne kérni a headerekből.
+    
     try:
         db.session.delete(task)
         db.session.commit()
-        return jsonify({'uzenet': 'Feladat sikeresen törölve!'}), 200
-    except:
+        return jsonify({'uzenet': 'Feladat sikeresen törölve.'}), 200
+    except Exception as e:
         db.session.rollback()
-        return jsonify({'hiba': 'Hiba történt a törlés során.'}), 500
+        return jsonify({'hiba': f'Hiba történt a törlés során: {str(e)}'}), 500
 
-# --- ÚJ CSEVEGÉS ÚTVONALAK ---
+# --------------------------------------------------------------------------------------------------
+# --- ÜZENET KEZELÉS (CHAT) ---
+# --------------------------------------------------------------------------------------------------
 
+# --- ÜZENET KÜLDÉSE ---
 @app.route('/messages', methods=['POST'])
 def send_message():
     data = request.get_json()
     sender_public_id = data.get('sender_id')
     recipient_username = data.get('recipient_username')
     content = data.get('content')
-    
-    if not all([sender_public_id, recipient_username, content]):
-        return jsonify({"hiba": "Hiányzó adatok (feladó, címzett felhasználónév, tartalom)."}), 400
 
-    # Feladó belső ID-jének lekérése public_id alapján
     sender = User.query.filter_by(public_id=sender_public_id).first()
-    if not sender:
-        return jsonify({"hiba": "Feladó felhasználó (sender_id) nem található."}), 404
-    
-    # Címzett belső ID-jének lekérése felhasználónév alapján
     recipient = User.query.filter_by(username=recipient_username).first()
+
+    if not sender:
+        return jsonify({'hiba': 'Érvénytelen feladó ID.'}), 400
+
     if not recipient:
-        return jsonify({"hiba": f"Nincs ilyen felhasználó: {recipient_username}"}), 404
+        return jsonify({'hiba': f'A címzett felhasználónév ("{recipient_username}") nem létezik.'}), 404
 
-    try:
-        new_message = Message(
-            sender_id=sender.id,
-            recipient_id=recipient.id,
-            content=content,
-            timestamp=datetime.utcnow()
-        )
-        db.session.add(new_message)
-        db.session.commit()
-        return jsonify({"uzenet": "Üzenet sikeresen elküldve!"}), 201
+    if sender.id == recipient.id:
+        return jsonify({'hiba': 'Nem küldhetsz üzenetet saját magadnak.'}), 400
 
-    except Exception as e:
-        db.session.rollback()
-        print(f"Hiba az üzenet mentésekor: {e}")
-        return jsonify({"hiba": f"Hiba az üzenet mentésekor: {str(e)}"}), 500
+    if not content:
+        return jsonify({'hiba': 'Az üzenet tartalma hiányzik.'}), 400
 
+    new_message = Message(
+        sender_id=sender.id,
+        recipient_id=recipient.id,
+        content=content,
+        timestamp=datetime.datetime.utcnow()
+    )
+
+    db.session.add(new_message)
+    db.session.commit()
+    
+    return jsonify({'uzenet': f'Üzenet sikeresen elküldve a felhasználónak: {recipient_username}'}), 201
+
+# --- ÖSSZES ÜZENET LEKÉRDEZÉSE (ELŐZMÉNYEK) ---
+# Ezt az útvonalat módosítottuk, hogy a küldött és fogadott üzeneteket is visszaadja.
 @app.route('/messages/<public_id>', methods=['GET'])
 def get_messages(public_id):
-    # A user_id (public_id) alapján megkeressük a belső ID-t
     user = User.query.filter_by(public_id=public_id).first()
     if not user:
         return jsonify({'hiba': 'A felhasználó nem található.'}), 404
     
-    recipient_id = user.id
+    user_id = user.id
 
-    # Lekérjük az összes üzenetet, ahol a user a címzett, és csatoljuk a feladó felhasználónevét is
-    messages = db.session.query(Message, User.username).join(User, Message.sender_id == User.id).filter(Message.recipient_id == recipient_id).all()
+    # 1. Lekérdezés: Üzenetek, ahol a user a CÍMZETT (received_messages)
+    received_messages = db.session.query(
+        Message.id, Message.content, Message.timestamp, 
+        User.username.label('sender_username')
+    ).join(User, Message.sender_id == User.id
+    ).filter(Message.recipient_id == user_id
+    ).all()
+
+    # 2. Lekérdezés: Üzenetek, ahol a user a FELADÓ (sent_messages)
+    sent_messages = db.session.query(
+        Message.id, Message.content, Message.timestamp, 
+        User.username.label('recipient_username') 
+    ).join(User, Message.recipient_id == User.id
+    ).filter(Message.sender_id == user_id
+    ).all()
     
     output = []
-    for message, sender_username in messages:
+    
+    # Fogadott üzenetek formázása
+    for message_id, content, timestamp, sender_username in received_messages:
         output.append({
-            "id": message.id,
+            "id": message_id,
             "sender_username": sender_username,
-            "content": message.content,
-            "timestamp": message.timestamp.isoformat()
+            "recipient_username": user.username, 
+            "content": content,
+            "timestamp": timestamp.isoformat(),
+            "is_sent_by_me": False # Fontos jelzés a frontendnek: BEJÖVŐ
+        })
+        
+    # Küldött üzenetek formázása
+    for message_id, content, timestamp, recipient_username in sent_messages:
+        output.append({
+            "id": message_id,
+            "sender_username": user.username, 
+            "recipient_username": recipient_username,
+            "content": content,
+            "timestamp": timestamp.isoformat(),
+            "is_sent_by_me": True # Fontos jelzés a frontendnek: KÜLDÖTT
         })
 
-    # Rendezzük időbélyeg szerint
+    # Rendezés időbélyeg szerint
     output.sort(key=lambda x: x['timestamp'])
 
     return jsonify(output), 200
 
+# --- ÜZENET TÖRLÉSE (Olvasottnak Jelölés) ---
+# Ez a funkció csak a bejövő üzeneteket érinti, a küldött üzeneteket megőrizzük.
 @app.route('/messages/<int:message_id>', methods=['DELETE'])
 def delete_message(message_id):
     message = Message.query.get(message_id)
+
     if not message:
-        return jsonify({"hiba": "Üzenet nem található."}), 404
-    
+        return jsonify({'hiba': 'Az üzenet nem található.'}), 404
+
     try:
         db.session.delete(message)
         db.session.commit()
-        return jsonify({"uzenet": "Üzenet sikeresen törölve (olvasottként megjelölve)."}), 200
+        return jsonify({'uzenet': 'Üzenet sikeresen törölve (olvasottnak jelölve).'}), 200
     except Exception as e:
         db.session.rollback()
-        print(f"Hiba az üzenet törlésekor: {e}")
-        return jsonify({"hiba": f"Hiba az üzenet törlésekor: {str(e)}"}), 500
+        return jsonify({'hiba': f'Hiba történt a törlés során: {str(e)}'}), 500
 
 
+# --- Szerver indítása ---
 if __name__ == '__main__':
-    # Flask app elindítása
     app.run(debug=True)

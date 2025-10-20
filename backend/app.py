@@ -65,8 +65,6 @@ class Message(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
 # --- Adatbázis Létrehozása ---
-# Ha a tábla szerkezete megváltozott, és hibát kapsz indításkor, 
-# töröld a 'e_ceruza.db' fájlt, és indítsd újra a szervert!
 with app.app_context():
     db.create_all()
 
@@ -159,7 +157,7 @@ def create_task():
     return jsonify({'uzenet': 'A feladat sikeresen létrehozva!', 'task_id': new_task.id}), 201
 
 # --- FELADATOK LISTÁZÁSA FELHASZNÁLÓNKÉNT ---
-# AZ ÚTVONAL HELYESEN FOGADJA A public_id PARAMÉTERT
+# A public_id paramétert használja a Flask útvonalán
 @app.route('/tasks/<public_id>', methods=['GET'])
 def list_tasks(public_id):
     user = User.query.filter_by(public_id=public_id).first()
@@ -225,7 +223,7 @@ def send_message():
     return jsonify({'uzenet': f'Üzenet sikeresen elküldve a felhasználónak: {recipient_username}'}), 201
 
 # --- ÖSSZES ÜZENET LEKÉRDEZÉSE (ELŐZMÉNYEK) ---
-# AZ ÚTVONAL HELYESEN FOGADJA A public_id PARAMÉTERT
+# A public_id paramétert használja a Flask útvonalán
 @app.route('/messages/<public_id>', methods=['GET'])
 def get_messages(public_id):
     user = User.query.filter_by(public_id=public_id).first()

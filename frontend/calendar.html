@@ -208,7 +208,7 @@
             submitButton.textContent = 'Feladat Mentése'; 
         }
 
-        // Kijelentkezés (JAVÍTOTT)
+        // Kijelentkezés 
         document.getElementById('logout-button').addEventListener('click', () => {
             localStorage.removeItem('user_id');
             localStorage.removeItem('username');
@@ -252,9 +252,11 @@
             }
 
             try {
+                // ITT HASZNÁLJA a /tasks/<public_id> útvonalat
                 const response = await fetch(`${API_BASE_URL}/tasks/${userId}`);
                 
                 if (!response.ok) {
+                    // Ha 404 vagy más hiba, akkor hiba történt a lekérdezés közben
                     throw new Error('Hiba történt a feladatok lekérdezése közben.');
                 }
                 
@@ -465,6 +467,7 @@
             if (!userId) return;
 
             try {
+                // ITT HASZNÁLJA a /messages/<public_id> útvonalat
                 const response = await fetch(`${API_BASE_URL}/messages/${userId}`);
                 if (!response.ok) throw new Error('Hiba az üzenetek lekérdezése közben.');
                 

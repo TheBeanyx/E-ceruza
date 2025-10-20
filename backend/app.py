@@ -30,6 +30,10 @@ class User(db.Model):
     password_hash = db.Column(db.String(256), nullable=False)
     tasks = db.relationship('Task', backref='owner', lazy=True)
     feedbacks = db.relationship('Feedback', backref='user_submitted', lazy=True)
+    # Kapcsolatok a csevegéshez
+    messages_sent = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy=True)
+    messages_received = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy=True)
+
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -48,6 +52,14 @@ class Feedback(db.Model):
     content = db.Column(db.Text, nullable=False) 
     rating = db.Column(db.Integer, nullable=True) # Értékelés (1-5)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ÚJ MODELL A CSEVEGÉSRE
+class Message(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     
 # --- Munkamenet kezelés: Adatbázis létrehozása és Admin felhasználó ---
 
@@ -56,7 +68,7 @@ ADMIN_USERNAME = 'buzás_benedek'
 ADMIN_PASSWORD = 'Benedek11'
 
 with app.app_context():
-    # Létrehozza az adatbázist és a táblákat, ha még nem léteznek
+    # Létrehozza az adatbázist és a táblákat, ha még nem léteznek (beleértve az új Message táblát is!)
     db.create_all() 
     
     # Admin felhasználó ellenőrzése és létrehozása
@@ -214,7 +226,7 @@ def get_all_feedback():
     return jsonify(result)
 
 
-# FELADAT ÚTVONALAK
+# --- FELADAT ÚTVONALAK ---
 @app.route('/tasks', methods=['POST'])
 def add_task():
     data = request.get_json()
@@ -281,6 +293,86 @@ def delete_task(task_id):
     except:
         db.session.rollback()
         return jsonify({'hiba': 'Hiba történt a törlés során.'}), 500
+
+# --- ÚJ CSEVEGÉS ÚTVONALAK ---
+
+@app.route('/messages', methods=['POST'])
+def send_message():
+    data = request.get_json()
+    sender_public_id = data.get('sender_id')
+    recipient_username = data.get('recipient_username')
+    content = data.get('content')
+    
+    if not all([sender_public_id, recipient_username, content]):
+        return jsonify({"hiba": "Hiányzó adatok (feladó, címzett felhasználónév, tartalom)."}), 400
+
+    # Feladó belső ID-jének lekérése public_id alapján
+    sender = User.query.filter_by(public_id=sender_public_id).first()
+    if not sender:
+        return jsonify({"hiba": "Feladó felhasználó (sender_id) nem található."}), 404
+    
+    # Címzett belső ID-jének lekérése felhasználónév alapján
+    recipient = User.query.filter_by(username=recipient_username).first()
+    if not recipient:
+        return jsonify({"hiba": f"Nincs ilyen felhasználó: {recipient_username}"}), 404
+
+    try:
+        new_message = Message(
+            sender_id=sender.id,
+            recipient_id=recipient.id,
+            content=content,
+            timestamp=datetime.utcnow()
+        )
+        db.session.add(new_message)
+        db.session.commit()
+        return jsonify({"uzenet": "Üzenet sikeresen elküldve!"}), 201
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Hiba az üzenet mentésekor: {e}")
+        return jsonify({"hiba": f"Hiba az üzenet mentésekor: {str(e)}"}), 500
+
+@app.route('/messages/<public_id>', methods=['GET'])
+def get_messages(public_id):
+    # A user_id (public_id) alapján megkeressük a belső ID-t
+    user = User.query.filter_by(public_id=public_id).first()
+    if not user:
+        return jsonify({'hiba': 'A felhasználó nem található.'}), 404
+    
+    recipient_id = user.id
+
+    # Lekérjük az összes üzenetet, ahol a user a címzett, és csatoljuk a feladó felhasználónevét is
+    messages = db.session.query(Message, User.username).join(User, Message.sender_id == User.id).filter(Message.recipient_id == recipient_id).all()
+    
+    output = []
+    for message, sender_username in messages:
+        output.append({
+            "id": message.id,
+            "sender_username": sender_username,
+            "content": message.content,
+            "timestamp": message.timestamp.isoformat()
+        })
+
+    # Rendezzük időbélyeg szerint
+    output.sort(key=lambda x: x['timestamp'])
+
+    return jsonify(output), 200
+
+@app.route('/messages/<int:message_id>', methods=['DELETE'])
+def delete_message(message_id):
+    message = Message.query.get(message_id)
+    if not message:
+        return jsonify({"hiba": "Üzenet nem található."}), 404
+    
+    try:
+        db.session.delete(message)
+        db.session.commit()
+        return jsonify({"uzenet": "Üzenet sikeresen törölve (olvasottként megjelölve)."}), 200
+    except Exception as e:
+        db.session.rollback()
+        print(f"Hiba az üzenet törlésekor: {e}")
+        return jsonify({"hiba": f"Hiba az üzenet törlésekor: {str(e)}"}), 500
+
 
 if __name__ == '__main__':
     # Flask app elindítása

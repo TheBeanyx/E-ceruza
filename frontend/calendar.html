@@ -231,12 +231,12 @@
         const API_BASE_URL = 'http://127.0.0.1:5000';
         
         const tasksList = document.getElementById('tasks-list');
-        const tasksHeader = document.getElementById('tasks-header'); // ÚJ: Csoport váltáshoz
+        const tasksHeader = document.getElementById('tasks-header'); 
         const errorMessage = document.getElementById('error-message');
         const successMessage = document.getElementById('success-message');
         const submitButton = document.querySelector('#add-task-form button[type="submit"]');
         const formTitle = document.getElementById('form-title');
-        const currentGroupIdInput = document.getElementById('current-group-id'); // ÚJ: Feladat létrehozáshoz
+        const currentGroupIdInput = document.getElementById('current-group-id'); 
         
         // CSEVEGÉS ELEMEK
         const chatModal = document.getElementById('chat-modal');
@@ -246,7 +246,7 @@
         const messagesList = document.getElementById('messages-list');
         const sendMessageForm = document.getElementById('send-message-form');
 
-        // CSOPORT ELEMEK (ÚJ)
+        // CSOPORT ELEMEK
         const groupModal = document.getElementById('group-modal');
         const groupIcon = document.getElementById('group-icon');
         const closeGroupButton = document.getElementById('close-group-modal');
@@ -339,7 +339,7 @@
             }
         }
         
-        // ÚJ: Csoportok lekérdezése
+        // Csoportok lekérdezése
         async function fetchGroups() {
             try {
                 const response = await fetch(`${API_BASE_URL}/study_groups/${userId}`);
@@ -360,7 +360,6 @@
                     currentGroupIndex = Math.min(currentGroupIndex, globalGroups.length - 1);
                     fetchTasks(globalGroups[currentGroupIndex]);
                 } else {
-                     // Ha nincs csoport, akkor csak az alap "Saját" csoport marad, de ennek itt a 0 indexen kéne lennie.
                      fetchTasks(defaultGroup); 
                 }
                 
@@ -376,7 +375,7 @@
             }
         }
 
-        // ÚJ: Csoportváltó nyilak frissítése
+        // Csoportváltó nyilak frissítése
         function updateGroupSelector() {
             if (globalGroups.length > 1) {
                 tasksHeader.textContent = `${globalGroups[currentGroupIndex].name} - Közelgő Feladatok`;
@@ -399,7 +398,7 @@
             currentGroupIdInput.value = currentGroup.id === 'personal' ? '' : currentGroup.id;
         }
 
-        // ÚJ: Csoport léptetés
+        // Csoport léptetés
         prevGroupBtn.addEventListener('click', () => {
             if (currentGroupIndex > 0) {
                 currentGroupIndex--;
@@ -416,7 +415,7 @@
             }
         });
 
-        // VÁLTOZÁS: Feladatok lekérdezése csoport szerint
+        // Feladatok lekérdezése csoport szerint
         async function fetchTasks(group) {
             tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
             
@@ -518,7 +517,6 @@
                 return;
             }
 
-            // ... (a többi edit mező beállítása változatlan)
             document.getElementById('task-id-to-edit').value = task.id;
             document.getElementById('task-title').value = task.title;
             document.getElementById('task-type').value = task.type;
@@ -545,7 +543,7 @@
             const taskIdToEdit = document.getElementById('task-id-to-edit').value;
             const isEditing = !!taskIdToEdit;
             
-            // ÚJ: Csoport ID hozzáadása, ha az nem 'personal'
+            // Csoport ID hozzáadása, ha az nem 'personal'
             const groupId = currentGroupIdInput.value || null;
 
             const taskData = {
@@ -622,7 +620,7 @@
         }
 
         // -------------------------------------------------------------------
-        // 2. CSOPORT KEZELÉS MODAL FUNKCIÓK (ÚJ)
+        // 2. CSOPORT KEZELÉS MODAL FUNKCIÓK
         // -------------------------------------------------------------------
 
         groupIcon.addEventListener('click', () => {
@@ -664,7 +662,7 @@
             });
         }
         
-        // Csoport létrehozása űrlap kezelése
+        // **JAVÍTOTT RÉSZ: Csoport létrehozása űrlap kezelése**
         createGroupForm.addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -673,33 +671,50 @@
             const membersString = document.getElementById('group-members').value;
             const description = document.getElementById('group-description').value;
 
-            // A felhasználónevet is hozzáadjuk a tagokhoz (mint létrehozó)
-            let membersArray = membersString.split(',').map(u => u.trim()).filter(u => u !== '');
+            // HIBAJAVÍTÁS: Kiszűrjük az üres stringeket és a duplikátumokat.
+            let membersArray = membersString.split(',')
+                                        .map(u => u.trim())
+                                        .filter(u => u !== '');
+            
+            // Hozzáadjuk a létrehozó (saját) felhasználónevet, ha még nincs benne
             if (!membersArray.includes(username)) {
                 membersArray.push(username); 
             }
-            // Szűrjük a duplikátumokat
+            
+            // Duplikátumok eltávolítása a végső listából
             membersArray = [...new Set(membersArray)];
 
+
+            // HIBAJAVÍTÁS ELLENŐRZÉS: Legalább a létrehozónak benne kell lennie a listában
+            if (membersArray.length === 0) {
+                 showMessage(errorMessage, 'Hiba: Nem sikerült feldolgozni a tagok listáját.', true);
+                 return;
+            }
 
             const groupData = {
                 name: groupName,
                 creator_id: userId,
-                members: membersArray, // A backend majd ellenőrzi a felhasználóneveket
+                members: membersArray, // Ezt küldjük a backendnek
                 description: description
             };
 
             try {
                 const response = await fetch(`${API_BASE_URL}/study_groups`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json' 
+                    },
                     body: JSON.stringify(groupData)
                 });
 
                 const result = await response.json();
 
                 if (!response.ok) {
-                    const errorMsg = result.hiba || 'Hiba történt a csoport létrehozásakor.';
+                    // Általános hibaüzenet javítása: ha 400-as (Bad Request) hibát kapunk, a hibaüzenetet kiírjuk
+                    const errorMsg = result.hiba 
+                        ? result.hiba 
+                        : (response.statusText || 'Hiba történt a csoport létrehozásakor. (Lehet, hogy érvénytelen felhasználónevet adtál meg.)');
+                        
                     showMessage(errorMessage, errorMsg, true);
                     return;
                 }
@@ -709,18 +724,27 @@
                 fetchGroups(); // Frissítjük a csoportok listáját
                 
             } catch (error) {
-                showMessage(errorMessage, `Hiba történt a szerverrel való kommunikáció során (Csoport létrehozása).`, true);
+                // Ez a blokk fut le, ha a szerver nem érhető el (pl. leállt a Flask)
+                showMessage(errorMessage, `**Hiba történt a szerverrel való kommunikáció során (Csoport létrehozása).** Kérjük, ellenőrizze, hogy a Python szerver fut-e!`, true);
             }
         });
 
 
         // -------------------------------------------------------------------
-        // 3. CSEVEGÉS FUNKCIÓK (VÁLTOZATLAN)
+        // 3. CSEVEGÉS FUNKCIÓK
         // -------------------------------------------------------------------
 
-        // ... (chatIcon, closeChatButton, markMessageAsRead, sendMessageForm eseménykezelők változatlanok) ...
+        chatIcon.addEventListener('click', () => {
+            chatModal.classList.remove('hidden');
+            chatModal.classList.add('flex'); 
+            fetchMessages();
+        });
 
-        // Az üzenetek kezelése funkciót nem változtattuk.
+        closeChatButton.addEventListener('click', () => {
+            chatModal.classList.add('hidden');
+            chatModal.classList.remove('flex');
+        });
+
         async function fetchMessages() {
             if (!userId) return;
             try {

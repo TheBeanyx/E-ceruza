@@ -18,6 +18,12 @@ CORS(app) # Engedélyezi a Cross-Origin kéréseket a frontend számára
 
 # --- Adatbázis Modellek (Táblák) ---
 
+# Many-to-Many (M:N) asszociációs tábla a felhasználók és csoportok között
+group_members = db.Table('group_members',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id'), primary_key=True),
+    db.Column('group_id', db.Integer, db.ForeignKey('study_group.id'), primary_key=True)
+)
+
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     public_id = db.Column(db.String(50), unique=True, default=lambda: str(uuid.uuid4()))
@@ -27,7 +33,8 @@ class User(db.Model):
     tasks = db.relationship('Task', backref='owner', lazy='dynamic')
     sent_messages = db.relationship('Message', foreign_keys='Message.sender_id', backref='sender', lazy='dynamic')
     received_messages = db.relationship('Message', foreign_keys='Message.recipient_id', backref='recipient', lazy='dynamic')
-
+    # study_groups backref-et a StudyGroup modell hozza létre
+    
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
@@ -64,13 +71,41 @@ class Message(db.Model):
     content = db.Column(db.Text, nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.datetime.utcnow)
 
+class StudyGroup(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    public_id = db.Column(db.String(50), unique=True, default=lambda: str(uuid.uuid4()))
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    creator_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+
+    # Kapcsolat a User modellhez a group_members táblán keresztül
+    members = db.relationship('User', secondary=group_members, lazy='dynamic',
+                              backref=db.backref('study_groups', lazy='dynamic'))
+
+    def to_dict(self, include_members=False):
+        data = {
+            'public_id': self.public_id,
+            'name': self.name,
+            # A belső creator_id-t lefordítjuk public_id-ra a kimenetben
+            'creator_id': User.query.get(self.creator_id).public_id if self.creator_id else None,
+            'created_at': self.created_at.isoformat()
+        }
+        if include_members:
+            data['members'] = [
+                {'username': member.username, 'public_id': member.public_id}
+                for member in self.members.all()
+            ]
+        return data
+
 # --- Adatbázis Létrehozása ---
 with app.app_context():
+    # Megpróbáljuk létrehozni a táblákat (beleértve az újakat is)
+    # Ha már léteznek, ez a hívás nem csinál semmit.
     db.create_all()
 
 # --- Útvonalak (API Endpoints) ---
 
-# --- REGISZTRÁCIÓ ---
+# --- REGISZTRÁCIÓ és BEJELENTKEZÉS (Változatlanul hagytam) ---
 @app.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -96,7 +131,6 @@ def register():
         'username': new_user.username
     }), 201
 
-# --- BEJELENTKEZÉS ---
 @app.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
@@ -116,10 +150,9 @@ def login():
     }), 200
 
 # --------------------------------------------------------------------------------------------------
-# --- FELADAT KEZELÉS ---
+# --- FELADAT KEZELÉS (Változatlanul hagytam) ---
 # --------------------------------------------------------------------------------------------------
 
-# --- ÚJ FELADAT LÉTREHOZÁSA ---
 @app.route('/tasks', methods=['POST'])
 def create_task():
     data = request.get_json()
@@ -139,7 +172,6 @@ def create_task():
     except ValueError:
         return jsonify({'hiba': 'Érvénytelen határidő formátum.'}), 400
     
-    # Ha a határidő a múltban van (csak egy egyszerű ellenőrzés)
     if deadline < datetime.datetime.utcnow():
         return jsonify({'hiba': 'A határidő nem lehet a múltban.'}), 400
 
@@ -156,19 +188,16 @@ def create_task():
     db.session.commit()
     return jsonify({'uzenet': 'A feladat sikeresen létrehozva!', 'task_id': new_task.id}), 201
 
-# --- FELADATOK LISTÁZÁSA FELHASZNÁLÓNKÉNT ---
-# A public_id paramétert használja a Flask útvonalán
 @app.route('/tasks/<public_id>', methods=['GET'])
 def list_tasks(public_id):
     user = User.query.filter_by(public_id=public_id).first()
     if not user:
         return jsonify({'hiba': 'Felhasználó nem található.'}), 404
 
-    tasks = user.tasks.order_by(Task.deadline).all() # Rendezés határidő szerint
+    tasks = user.tasks.order_by(Task.deadline).all() 
     
     return jsonify([task.to_dict() for task in tasks]), 200
 
-# --- FELADAT TÖRLÉSE ---
 @app.route('/tasks/<int:task_id>', methods=['DELETE'])
 def delete_task(task_id):
     task = Task.query.get(task_id)
@@ -184,10 +213,9 @@ def delete_task(task_id):
         return jsonify({'hiba': f'Hiba történt a törlés során: {str(e)}'}), 500
 
 # --------------------------------------------------------------------------------------------------
-# --- ÜZENET KEZELÉS (CHAT) ---
+# --- ÜZENET KEZELÉS (Változatlanul hagytam) ---
 # --------------------------------------------------------------------------------------------------
 
-# --- ÜZENET KÜLDÉSE ---
 @app.route('/messages', methods=['POST'])
 def send_message():
     data = request.get_json()
@@ -222,8 +250,6 @@ def send_message():
     
     return jsonify({'uzenet': f'Üzenet sikeresen elküldve a felhasználónak: {recipient_username}'}), 201
 
-# --- ÖSSZES ÜZENET LEKÉRDEZÉSE (ELŐZMÉNYEK) ---
-# A public_id paramétert használja a Flask útvonalán
 @app.route('/messages/<public_id>', methods=['GET'])
 def get_messages(public_id):
     user = User.query.filter_by(public_id=public_id).first()
@@ -277,7 +303,6 @@ def get_messages(public_id):
 
     return jsonify(output), 200
 
-# --- ÜZENET TÖRLÉSE (Olvasottnak Jelölés) ---
 @app.route('/messages/<int:message_id>', methods=['DELETE'])
 def delete_message(message_id):
     message = Message.query.get(message_id)
@@ -292,6 +317,132 @@ def delete_message(message_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'hiba': f'Hiba történt a törlés során: {str(e)}'}), 500
+
+
+# --------------------------------------------------------------------------------------------------
+# --- ÚJ: TANULÓCSOPORT KEZELÉS ---
+# --------------------------------------------------------------------------------------------------
+
+# --- ÚJ CSOPORT LÉTREHOZÁSA (POST /study_groups) ---
+@app.route('/study_groups', methods=['POST'])
+def create_study_group():
+    data = request.get_json()
+    creator_public_id = data.get('creator_id') # A létrehozó public_id-ja
+    group_name = data.get('name')
+    member_usernames = data.get('members', []) # Opcionális: kezdeti tagok felhasználónevei
+
+    creator = User.query.filter_by(public_id=creator_public_id).first()
+    if not creator:
+        return jsonify({'hiba': 'Létrehozó felhasználó nem található.'}), 404
+
+    if not group_name:
+        return jsonify({'hiba': 'Hiányzó csoportnév.'}), 400
+
+    if StudyGroup.query.filter_by(name=group_name).first():
+        return jsonify({'hiba': f'A "{group_name}" nevű csoport már létezik.'}), 409
+
+    # 1. Csoport létrehozása
+    new_group = StudyGroup(name=group_name, creator_id=creator.id)
+    
+    # 2. Létrehozó hozzáadása tagként
+    new_group.members.append(creator)
+
+    # 3. További tagok hozzáadása (usernames-ből belső ID-kre váltás)
+    added_members = [creator.username]
+    failed_members = []
+
+    for username in member_usernames:
+        if username == creator.username:
+            continue
+        member = User.query.filter_by(username=username).first()
+        if member:
+            # Csak akkor adjuk hozzá, ha még nem tagja
+            if member not in new_group.members: 
+                new_group.members.append(member)
+                added_members.append(username)
+        else:
+            failed_members.append(username)
+
+    db.session.add(new_group)
+    db.session.commit()
+
+    response = {
+        'uzenet': f'Csoport sikeresen létrehozva: {group_name}',
+        'group_id': new_group.public_id,
+        'tagok': added_members
+    }
+    if failed_members:
+        response['figyelmeztetes'] = f'A következő felhasználókat nem sikerült hozzáadni, mert nem léteznek: {", ".join(failed_members)}'
+
+    return jsonify(response), 201
+
+# --- EGY CSOPORT RÉSZLETEINEK LEKÉRDEZÉSE (GET /study_groups/<public_id>) ---
+@app.route('/study_groups/<public_id>', methods=['GET'])
+def get_study_group(public_id):
+    group = StudyGroup.query.filter_by(public_id=public_id).first()
+    if not group:
+        return jsonify({'hiba': 'Tanulócsoport nem található.'}), 404
+    
+    # Visszaadja a tagok listáját (username és public_id formájában)
+    return jsonify(group.to_dict(include_members=True)), 200
+
+# --- CSATLAKOZÁS CSOPORTHOZ (POST /study_groups/<public_id>/join) ---
+@app.route('/study_groups/<public_id>/join', methods=['POST'])
+def join_study_group(public_id):
+    data = request.get_json()
+    user_public_id = data.get('user_id') # A csatlakozni kívánó felhasználó public_id-ja
+
+    user = User.query.filter_by(public_id=user_public_id).first()
+    group = StudyGroup.query.filter_by(public_id=public_id).first()
+
+    if not user:
+        return jsonify({'hiba': 'Felhasználó nem található.'}), 404
+    if not group:
+        return jsonify({'hiba': 'Tanulócsoport nem található.'}), 404
+
+    # Ellenőrzés, hogy a felhasználó már tag-e
+    if user in group.members:
+        return jsonify({'uzenet': 'A felhasználó már tagja a csoportnak.'}), 200
+    
+    group.members.append(user)
+    db.session.commit()
+    return jsonify({'uzenet': f'A felhasználó ({user.username}) sikeresen csatlakozott a csoporthoz: {group.name}'}), 200
+
+# --- CSOPORT ELHAGYÁSA (POST /study_groups/<public_id>/leave) ---
+@app.route('/study_groups/<public_id>/leave', methods=['POST'])
+def leave_study_group(public_id):
+    data = request.get_json()
+    user_public_id = data.get('user_id') # A távozó felhasználó public_id-ja
+
+    user = User.query.filter_by(public_id=user_public_id).first()
+    group = StudyGroup.query.filter_by(public_id=public_id).first()
+
+    if not user:
+        return jsonify({'hiba': 'Felhasználó nem található.'}), 404
+    if not group:
+        return jsonify({'hiba': 'Tanulócsoport nem található.'}), 404
+    
+    # Ellenőrzés, hogy a felhasználó tag-e
+    if user not in group.members:
+        return jsonify({'uzenet': 'A felhasználó nem tagja ennek a csoportnak.'}), 200
+
+    # Eltávolítás a members listából
+    group.members.remove(user)
+    db.session.commit()
+
+    return jsonify({'uzenet': f'A felhasználó ({user.username}) sikeresen elhagyta a csoportot: {group.name}'}), 200
+
+# --- FELHASZNÁLÓ CSOPORTJAINAK LISTÁZÁSA (GET /study_groups/user/<user_public_id>) ---
+@app.route('/study_groups/user/<user_public_id>', methods=['GET'])
+def list_user_groups(user_public_id):
+    user = User.query.filter_by(public_id=user_public_id).first()
+    if not user:
+        return jsonify({'hiba': 'Felhasználó nem található.'}), 404
+
+    # Lekéri az összes csoportot, aminek a felhasználó tagja
+    groups = user.study_groups.all()
+
+    return jsonify([group.to_dict() for group in groups]), 200
 
 
 # --- Szerver indítása ---

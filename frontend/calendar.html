@@ -28,25 +28,24 @@
         .priority-beadandofeladat { background-color: #ccfbf1; border-color: #14b8a6; }
         .priority-egyebfeljegyzesek { background-color: #f1f5f9; border-color: #64748b; }
 
-        /* JAVÍTOTT: CSS a csevegéshez (Jobb kontraszt és tagolás maradt) */
+        /* JAVÍTOTT: CSS a csevegéshez */
         .chat-bubble-mine {
-            background-color: #3b82f6; /* Kék */
+            background-color: #3b82f6; 
             color: white;
             align-self: flex-end;
             margin-left: auto;
         }
         .chat-bubble-other {
-            background-color: #e5e7eb; /* Világosszürke */
-            color: #000000; /* MÉG SÖTÉTEBB SZÖVEG a maximális kontrasztért */
+            background-color: #e5e7eb; 
+            color: #000000; 
             align-self: flex-start;
             margin-right: auto;
         }
         
-        /* JAVÍTÁS: Növeltük a line-height-et a jobb olvashatóságért buborékon belül */
         .chat-bubble-mine .message-content, .chat-bubble-other .message-content {
-            line-height: 1.6; /* Jelentősen növelt sorszélesség */
+            line-height: 1.6;
             padding-bottom: 5px; 
-            white-space: pre-wrap; /* Kezeli a sortöréseket, ha vannak */
+            white-space: pre-wrap;
         }
 
         /* Javítás: A görgethető üzenet lista magassága és padding */
@@ -58,7 +57,7 @@
         }
         
         /* Javítás: Nagyobb csevegőablak megjelenítés */
-        #chat-modal .modal-content-wrapper, #group-modal .modal-content-wrapper {
+        #chat-modal .modal-content-wrapper {
             max-height: 90vh; 
             max-width: 800px; 
             width: 90%;
@@ -74,7 +73,7 @@
                 <p id="welcome-message" class="text-lg text-gray-600 mt-1"></p>
             </div>
             <div class="flex items-center space-x-4">
-                <button id="group-icon" class="relative p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow-md">
+                <button id="group-icon" class="relative p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow-md" title="Tanulócsoportok Kezelése">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                 </button>
                 <button id="chat-icon" class="relative p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow-md">
@@ -97,7 +96,11 @@
                 <form id="add-task-form" class="space-y-4">
                     <input type="hidden" id="task-id-to-edit" value="">
                     
-                    <input type="hidden" id="current-group-id" value=""> 
+                    <div class="space-y-1">
+                        <label for="group-select" class="block text-sm font-medium text-gray-700">Csoport kiválasztása:</label>
+                        <select id="group-select" name="group_id" required class="w-full p-3 border border-gray-300 rounded-lg">
+                            </select>
+                    </div>
 
                     <div class="space-y-1">
                         <label for="task-title" class="block text-sm font-medium text-gray-700">Feladat neve</label>
@@ -187,46 +190,6 @@
         </div>
     </div>
     
-    <div id="group-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-50 flex items-center justify-center hidden">
-        <div class="bg-white rounded-lg shadow-xl w-full max-w-xl flex flex-col modal-content-wrapper">
-            
-            <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
-                <h3 class="text-2xl font-bold text-gray-800">Tanulócsoport Létrehozása/Kezelése</h3>
-                <button id="close-group-modal" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            
-            <div class="p-6 pt-4 flex-grow overflow-y-auto">
-                <h4 class="text-lg font-semibold mb-4 border-b pb-1">Új csoport létrehozása</h4>
-                <form id="create-group-form" class="space-y-4">
-                    <div class="space-y-1">
-                        <label for="group-name" class="block text-sm font-medium text-gray-700">Mi legyen a csoport neve *</label>
-                        <input type="text" id="group-name" name="group_name" required class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div class="space-y-1">
-                        <label for="group-members" class="block text-sm font-medium text-gray-700">Kikkel osztod meg ezt a tanulócsoportot * (Felhasználónevek vesszővel elválasztva)</label>
-                        <input type="text" id="group-members" name="group_members" required placeholder="Pl: kovacs_peter, nagy_anna, buzás_benedek" class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div class="space-y-1">
-                        <label for="group-description" class="block text-sm font-medium text-gray-700">Csoport leírása</label>
-                        <textarea id="group-description" name="group_description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
-                    </div>
-                    <button type="submit" class="w-full bg-green-500 text-white p-3 rounded-lg font-semibold hover:bg-green-600 transition duration-200 shadow-md">
-                        Csoport Létrehozása
-                    </button>
-                </form>
-                
-                <h4 class="text-lg font-semibold mt-8 mb-4 border-b pb-1">Jelenlegi csoportjaid</h4>
-                <div id="current-groups-list" class="space-y-3">
-                    <p class="text-gray-500">Nincsenek jelenlegi csoportok.</p>
-                </div>
-
-            </div>
-        </div>
-    </div>
-
-
     <script>
         const API_BASE_URL = 'http://127.0.0.1:5000';
         
@@ -236,8 +199,10 @@
         const successMessage = document.getElementById('success-message');
         const submitButton = document.querySelector('#add-task-form button[type="submit"]');
         const formTitle = document.getElementById('form-title');
-        const currentGroupIdInput = document.getElementById('current-group-id'); 
         
+        // Kért: Csoportválasztó
+        const groupSelect = document.getElementById('group-select'); 
+
         // CSEVEGÉS ELEMEK
         const chatModal = document.getElementById('chat-modal');
         const chatIcon = document.getElementById('chat-icon');
@@ -246,12 +211,8 @@
         const messagesList = document.getElementById('messages-list');
         const sendMessageForm = document.getElementById('send-message-form');
 
-        // CSOPORT ELEMEK
-        const groupModal = document.getElementById('group-modal');
+        // CSOPORT ELEMEK (CSOPORT LÉPTEGÉS VISSZAÁLLÍTVA)
         const groupIcon = document.getElementById('group-icon');
-        const closeGroupButton = document.getElementById('close-group-modal');
-        const createGroupForm = document.getElementById('create-group-form');
-        const currentGroupsList = document.getElementById('current-groups-list');
         const prevGroupBtn = document.getElementById('prev-group-btn');
         const nextGroupBtn = document.getElementById('next-group-btn');
 
@@ -263,7 +224,7 @@
         // Globális állapot
         let globalTasks = [];
         let globalGroups = [];
-        let currentGroupIndex = 0;
+        let currentGroupIndex = 0; // A nyilak ehhez az indexhez lesznek kötve
 
         // Azonnali ellenőrzés
         if (!userId || !username) {
@@ -303,6 +264,12 @@
             document.getElementById('add-task-form').reset();
             document.getElementById('task-id-to-edit').value = '';
             
+            // Visszaállítjuk a dropdown-t a 'Saját Feladataim' opcióra
+            const personalOption = groupSelect.querySelector('option[value=""]');
+            if (personalOption) {
+                personalOption.selected = true;
+            }
+
             formTitle.textContent = 'Új Feladat';
             submitButton.textContent = 'Feladat Mentése';
         }
@@ -339,66 +306,70 @@
             }
         }
         
-        // Csoportok lekérdezése
-        async function fetchGroups() {
+        // Csoportok lekérdezése és a dropdown menü feltöltése
+        async function fetchGroupsAndPopulateSelect() {
             try {
-                const response = await fetch(`${API_BASE_URL}/study_groups/${userId}`);
+                const response = await fetch(`${API_BASE_URL}/groups/user/${userId}`);
+                
                 if (!response.ok) {
                     throw new Error('Hiba történt a csoportok lekérdezése közben.');
                 }
-                const groups = await response.json();
                 
-                // Hozzáadunk egy alap "Saját" csoportot
-                const defaultGroup = { id: 'personal', name: 'Saját Feladataim', description: 'Csak a saját feljegyzéseid.' };
-                globalGroups = [defaultGroup, ...groups];
+                let groups = await response.json();
                 
-                // Megjelenítjük a csoportlistát a modálban
-                renderGroupList(globalGroups);
+                // Hozzáadjuk az alapértelmezett "Saját Feladataim" csoportot (id: null a backendnek)
+                const personalGroup = { id: null, name: 'Saját Feladataim' };
+                globalGroups = [personalGroup, ...groups];
 
-                // Megpróbáljuk beállítani az aktuális csoportot
-                if (globalGroups.length > 0) {
-                    currentGroupIndex = Math.min(currentGroupIndex, globalGroups.length - 1);
-                    fetchTasks(globalGroups[currentGroupIndex]);
-                } else {
-                     fetchTasks(defaultGroup); 
+                // Ellenőrizzük, hogy az aktuális index még érvényes-e
+                if (currentGroupIndex >= globalGroups.length) {
+                    currentGroupIndex = 0;
                 }
-                
+
+                // Dropdown menü feltöltése
+                groupSelect.innerHTML = '';
+                globalGroups.forEach(group => {
+                    const option = document.createElement('option');
+                    // A null-t ""-re cseréljük a value-ban a személyes csoportnál
+                    option.value = group.id !== null ? group.id.toString() : ""; 
+                    option.textContent = group.name;
+                    groupSelect.appendChild(option);
+                });
+
+                // Betöltjük az aktuális csoport feladatait
+                fetchTasks(globalGroups[currentGroupIndex]);
                 updateGroupSelector();
+                errorMessage.classList.add('hidden');
 
             } catch (error) {
-                 showMessage(errorMessage, `**Hiba: A csoportok lekérdezése sikertelen.** Részletek: ${error.message}`, true);
-                 // Biztosítjuk, hogy a default csoport megjelenjen, ha a szerver hiba van
-                 globalGroups = [{ id: 'personal', name: 'Saját Feladataim', description: 'Csak a saját feljegyzéseid.' }];
+                 // Ha a lekérdezés hibás, csak a Saját feladatok jelennek meg
+                 globalGroups = [{ id: null, name: 'Saját Feladataim' }];
                  currentGroupIndex = 0;
+                 // A dropdown-t is muszáj feltölteni, de csak az egy szem 'Saját Feladataim'-mal
+                 groupSelect.innerHTML = `<option value="">Saját Feladataim</option>`;
+
                  fetchTasks(globalGroups[currentGroupIndex]);
                  updateGroupSelector();
+                 
+                 showMessage(errorMessage, `Hiba: A csoportok betöltése sikertelen. Részletek: ${error.message}`, true);
             }
         }
 
-        // Csoportváltó nyilak frissítése
+
+        // Csoportváltó nyilak és fejléc frissítése
         function updateGroupSelector() {
-            if (globalGroups.length > 1) {
-                tasksHeader.textContent = `${globalGroups[currentGroupIndex].name} - Közelgő Feladatok`;
-                
-                prevGroupBtn.disabled = currentGroupIndex === 0;
-                nextGroupBtn.disabled = currentGroupIndex === globalGroups.length - 1;
-                
-                prevGroupBtn.classList.toggle('opacity-50', currentGroupIndex === 0);
-                nextGroupBtn.classList.toggle('opacity-50', currentGroupIndex === globalGroups.length - 1);
-            } else {
-                 tasksHeader.textContent = 'Saját Feladataim - Közelgő Feladatok';
-                 prevGroupBtn.disabled = true;
-                 nextGroupBtn.disabled = true;
-                 prevGroupBtn.classList.add('opacity-50');
-                 nextGroupBtn.classList.add('opacity-50');
-            }
-
-            // Beállítjuk a feladat űrlapján az aktuális csoport ID-t (ha nem saját)
             const currentGroup = globalGroups[currentGroupIndex];
-            currentGroupIdInput.value = currentGroup.id === 'personal' ? '' : currentGroup.id;
+            tasksHeader.textContent = `${currentGroup.name} - Közelgő Feladatok`;
+            
+            // Navigációs gombok állapotának frissítése
+            prevGroupBtn.disabled = currentGroupIndex === 0;
+            nextGroupBtn.disabled = currentGroupIndex === globalGroups.length - 1;
+            
+            prevGroupBtn.classList.toggle('opacity-50', prevGroupBtn.disabled);
+            nextGroupBtn.classList.toggle('opacity-50', nextGroupBtn.disabled);
         }
 
-        // Csoport léptetés
+        // Csoport léptetés: ELŐZŐ
         prevGroupBtn.addEventListener('click', () => {
             if (currentGroupIndex > 0) {
                 currentGroupIndex--;
@@ -407,6 +378,7 @@
             }
         });
 
+        // Csoport léptetés: KÖVETKEZŐ
         nextGroupBtn.addEventListener('click', () => {
             if (currentGroupIndex < globalGroups.length - 1) {
                 currentGroupIndex++;
@@ -414,16 +386,25 @@
                 updateGroupSelector();
             }
         });
+        
+        // CSOPORT KEZELŐ IKON ÁTIRÁNYÍTÁS
+        groupIcon.addEventListener('click', () => {
+            // Átirányítás a Csoport Kezelő HTML fájlra
+            window.location.href = 'schedule.html'; 
+        });
 
-        // Feladatok lekérdezése csoport szerint
+
+        // Feladatok lekérdezése CSAK az aktuális csoport szerint
         async function fetchTasks(group) {
             tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
             
             let url = '';
-            if (group.id === 'personal') {
-                url = `${API_BASE_URL}/tasks/${userId}`; // Saját feladatok
+            if (group.id === null) {
+                // Saját feladatok
+                url = `${API_BASE_URL}/tasks/${userId}`; 
             } else {
-                url = `${API_BASE_URL}/tasks/group/${group.id}`; // Csoportos feladatok
+                // Csoportos feladatok
+                url = `${API_BASE_URL}/tasks/group/${group.id}`; 
             }
 
             try {
@@ -440,11 +421,12 @@
                 errorMessage.classList.add('hidden');
 
             } catch (error) {
-                showMessage(errorMessage, `Hiba: A feladatok betöltése sikertelen. Részletek: ${error.message}`, true);
-                tasksList.innerHTML = '<p class="text-gray-500 text-center p-8">Sikertelen betöltés. Nincsenek megjeleníthető feladatok.</p>';
+                showMessage(errorMessage, `Hiba: A feladatok betöltése sikertelen a(z) "${group.name}" csoporthoz. Részletek: ${error.message}`, true);
+                tasksList.innerHTML = '<p class="text-gray-500 text-center p-8">Sikertelen betöltés.</p>';
             }
         }
 
+        // Feladatok megjelenítése (csak az aktuális csoport feladatai vannak a listában)
         function renderTasks(tasks) {
             tasksList.innerHTML = '';
             
@@ -464,7 +446,11 @@
 
             upcomingTasks.forEach(task => {
                 const typeClass = getTypeClass(task.type);
-                const isGroupTask = task.group_id;
+                
+                // Mivel a lista csak az aktuális csoportot mutatja, nem írjuk ki a csoport nevét itt, 
+                // de ha a Saját Feladataimon kívül máshol vagyunk, kiírhatjuk, ki a feltöltő
+                const groupName = getGroupNameById(task.group_id);
+                const isPersonalGroup = globalGroups[currentGroupIndex].id === null;
 
                 const taskElement = document.createElement('div');
                 taskElement.className = `p-5 rounded-lg ${typeClass} shadow-lg flex justify-between items-start`;
@@ -474,7 +460,6 @@
                     <div class="flex-1">
                         <div class="flex items-center space-x-3 mb-1">
                             <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-indigo-600 text-white">${task.type}</span>
-                            ${isGroupTask ? '<span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-teal-500 text-white">CSOPORTOS</span>' : ''}
                             <h3 class="text-xl font-bold text-gray-800">${task.title}</h3>
                         </div>
                         <p class="text-sm text-gray-600 mt-2">
@@ -506,6 +491,7 @@
             });
         }
 
+        // Feladat szerkesztése
         function editTask(event) {
             const taskId = event.currentTarget.getAttribute('data-id');
             const taskIdNumber = parseInt(taskId);
@@ -516,6 +502,12 @@
                 showMessage(errorMessage, `Hiba: A feladat (ID: ${taskId}) nem található a memóriában.`, true);
                 return;
             }
+            
+            // Csoport kiválasztása szerkesztéskor
+            // Ha a group_id null, a select value-ja "" lesz
+            const groupIdForSelect = task.group_id !== null ? task.group_id.toString() : "";
+            groupSelect.value = groupIdForSelect;
+
 
             document.getElementById('task-id-to-edit').value = task.id;
             document.getElementById('task-title').value = task.title;
@@ -531,6 +523,7 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
+        // Új/módosított feladat mentése
         document.getElementById('add-task-form').addEventListener('submit', async function(event) {
             event.preventDefault();
 
@@ -543,12 +536,14 @@
             const taskIdToEdit = document.getElementById('task-id-to-edit').value;
             const isEditing = !!taskIdToEdit;
             
-            // Csoport ID hozzáadása, ha az nem 'personal'
-            const groupId = currentGroupIdInput.value || null;
+            // Kért: Csoport ID beolvasása a select-ből
+            let selectedGroupId = groupSelect.value;
+            // Ha a value "", akkor null-t küldünk a backendnek (személyes csoport)
+            const groupId = selectedGroupId === '' ? null : parseInt(selectedGroupId); 
 
             const taskData = {
                 user_id: userId,
-                group_id: groupId, // Ez a kulcs
+                group_id: groupId, 
                 title: document.getElementById('task-title').value,
                 type: document.getElementById('task-type').value,
                 deadline: deadlineInput + ':00',
@@ -557,7 +552,7 @@
                 online_link: document.getElementById('task-online-link').value || null 
             };
             
-            // Ha szerkesztünk, töröljük a régit
+            // Ha szerkesztünk, töröljük a régit, mint korábban
             if (isEditing) {
                 try {
                     const deleteResponse = await fetch(`${API_BASE_URL}/tasks/${taskIdToEdit}`, {
@@ -597,6 +592,7 @@
             }
         });
         
+        // Feladat törlése
         async function deleteTask(event) {
             const taskId = event.currentTarget.getAttribute('data-id');
             
@@ -615,123 +611,21 @@
                 showMessage(successMessage, result.uzenet, false);
                 fetchTasks(globalGroups[currentGroupIndex]); // Frissíti az aktuális csoportot
             } catch (error) {
-                 showMessage(errorMessage, 'Hiba történt a szerverrel való kommunikáció során (Feladat törlése). Kérjük, ellenőrizze a háttérrendszer (backend) elérhetőségét.', true);
+                 showMessage(errorMessage, 'Hiba történt a szerverrel való kommunikáció során (Feladat törlése).', true);
             }
         }
 
-        // -------------------------------------------------------------------
-        // 2. CSOPORT KEZELÉS MODAL FUNKCIÓK
-        // -------------------------------------------------------------------
-
-        groupIcon.addEventListener('click', () => {
-            groupModal.classList.remove('hidden');
-            groupModal.classList.add('flex'); 
-            fetchGroups(); // Frissítjük a csoportok listáját megnyitáskor
-        });
-
-        closeGroupButton.addEventListener('click', () => {
-            groupModal.classList.add('hidden');
-            groupModal.classList.remove('flex');
-        });
-        
-        // Csoportok megjelenítése a modálban
-        function renderGroupList(groups) {
-            // Nem jelenítjük meg a "Saját Feladataim" csoportot itt, csak a valódiakat
-            const actualGroups = groups.filter(g => g.id !== 'personal'); 
-
-            currentGroupsList.innerHTML = '';
-            
-            if (actualGroups.length === 0) {
-                currentGroupsList.innerHTML = '<p class="text-gray-500">Nincsenek jelenlegi csoportok.</p>';
-                return;
+        // Segédfüggvény a csoport nevének lekérdezésére
+        function getGroupNameById(groupId) {
+            if (groupId === null) {
+                return 'Saját Feladataim';
             }
-
-            actualGroups.forEach(group => {
-                const groupElement = document.createElement('div');
-                groupElement.className = 'p-4 border rounded-lg bg-gray-50 shadow-sm';
-                
-                // Tagok listázása
-                const membersList = Array.isArray(group.members) ? group.members.join(', ') : 'Nincs adat';
-
-                groupElement.innerHTML = `
-                    <h5 class="font-bold text-lg text-indigo-700">${group.name}</h5>
-                    <p class="text-sm text-gray-600 mt-1">${group.description || 'Nincs leírás.'}</p>
-                    <p class="text-xs text-gray-500 mt-2 border-t pt-1">Tagok: ${membersList}</p>
-                `;
-                currentGroupsList.appendChild(groupElement);
-            });
+            const group = globalGroups.find(g => g.id === groupId);
+            return group ? group.name : 'Ismeretlen Csoport';
         }
-        
-        // **JAVÍTOTT RÉSZ: Csoport létrehozása űrlap kezelése**
-        createGroupForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            const groupName = document.getElementById('group-name').value;
-            // A tagokat vesszővel elválasztott listaként küldjük el (username-ek)
-            const membersString = document.getElementById('group-members').value;
-            const description = document.getElementById('group-description').value;
-
-            // HIBAJAVÍTÁS: Kiszűrjük az üres stringeket és a duplikátumokat.
-            let membersArray = membersString.split(',')
-                                        .map(u => u.trim())
-                                        .filter(u => u !== '');
-            
-            // Hozzáadjuk a létrehozó (saját) felhasználónevet, ha még nincs benne
-            if (!membersArray.includes(username)) {
-                membersArray.push(username); 
-            }
-            
-            // Duplikátumok eltávolítása a végső listából
-            membersArray = [...new Set(membersArray)];
-
-
-            // HIBAJAVÍTÁS ELLENŐRZÉS: Legalább a létrehozónak benne kell lennie a listában
-            if (membersArray.length === 0) {
-                 showMessage(errorMessage, 'Hiba: Nem sikerült feldolgozni a tagok listáját.', true);
-                 return;
-            }
-
-            const groupData = {
-                name: groupName,
-                creator_id: userId,
-                members: membersArray, // Ezt küldjük a backendnek
-                description: description
-            };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/study_groups`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify(groupData)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    // Általános hibaüzenet javítása: ha 400-as (Bad Request) hibát kapunk, a hibaüzenetet kiírjuk
-                    const errorMsg = result.hiba 
-                        ? result.hiba 
-                        : (response.statusText || 'Hiba történt a csoport létrehozásakor. (Lehet, hogy érvénytelen felhasználónevet adtál meg.)');
-                        
-                    showMessage(errorMessage, errorMsg, true);
-                    return;
-                }
-
-                showMessage(successMessage, result.uzenet, false);
-                createGroupForm.reset();
-                fetchGroups(); // Frissítjük a csoportok listáját
-                
-            } catch (error) {
-                // Ez a blokk fut le, ha a szerver nem érhető el (pl. leállt a Flask)
-                showMessage(errorMessage, `**Hiba történt a szerverrel való kommunikáció során (Csoport létrehozása).** Kérjük, ellenőrizze, hogy a Python szerver fut-e!`, true);
-            }
-        });
-
 
         // -------------------------------------------------------------------
-        // 3. CSEVEGÉS FUNKCIÓK
+        // 3. CSEVEGÉS FUNKCIÓK (Változatlanul)
         // -------------------------------------------------------------------
 
         chatIcon.addEventListener('click', () => {
@@ -849,13 +743,13 @@
         });
 
 
-        // Indításkor először a csoportokat kérjük le, ami elindítja a feladatok lekérdezését
-        fetchGroups();
+        // Indításkor először a csoportokat kérjük le és töltjük fel a legördülő menüt, majd betöltjük az első csoport feladatait
+        fetchGroupsAndPopulateSelect();
         fetchMessages();
 
         // Automatikus frissítés 10 másodpercenként (10000 ms)
         setInterval(() => {
-            fetchGroups(); 
+            fetchGroupsAndPopulateSelect(); 
             if (!chatModal.classList.contains('hidden')) {
                 fetchMessages();
             }

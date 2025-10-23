@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Csoportkezelő</title>
+  <title>Tanulócsoport Kezelő</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
@@ -11,6 +11,10 @@
       background: linear-gradient(to bottom right, #1d4ed8, #4f46e5, #7c3aed);
       min-height: 100vh;
       padding: 2rem;
+    }
+    .main-container {
+        max-width: 1000px;
+        margin: auto;
     }
     .card {
       background: white;
@@ -21,7 +25,7 @@
   </style>
 </head>
 <body>
-  <div class="max-w-4xl mx-auto">
+  <div class="main-container mx-auto">
     <header class="bg-white p-6 rounded-xl mb-8 shadow-lg flex justify-between items-center">
       <h1 class="text-3xl font-bold text-gray-800">Tanulócsoportok kezelése</h1>
       <button id="back-btn" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
@@ -29,29 +33,28 @@
       </button>
     </header>
 
-    <div id="error" class="hidden bg-red-100 text-red-700 p-3 mb-4 rounded"></div>
-    <div id="success" class="hidden bg-green-100 text-green-700 p-3 mb-4 rounded"></div>
+    <div id="error" class="hidden bg-red-100 text-red-700 p-3 mb-4 rounded font-semibold"></div>
+    <div id="success" class="hidden bg-green-100 text-green-700 p-3 mb-4 rounded font-semibold"></div>
 
     <div class="grid md:grid-cols-2 gap-8">
-      <!-- Új csoport létrehozása -->
       <div class="card">
-        <h2 class="text-2xl font-semibold mb-4">Új csoport létrehozása</h2>
+        <h2 class="text-2xl font-semibold mb-4">Új csoport létrehozása (MAX. KOMPATIBILITÁS)</h2>
         <form id="create-form" class="space-y-4">
           <div>
-            <label for="group-name" class="block text-gray-700 font-medium mb-1">Csoport neve</label>
-            <input id="group-name" type="text" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500" placeholder="pl. Programozás gyakorló">
+            <label for="group-name" class="block text-gray-700 font-medium mb-1">Csoport neve (KÖTELEZŐ)</label>
+            <input id="group-name" type="text" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500" placeholder="pl. Programozás gyakorló" required>
           </div>
           <div>
             <label for="group-desc" class="block text-gray-700 font-medium mb-1">Leírás (opcionális)</label>
             <textarea id="group-desc" class="w-full border border-gray-300 rounded p-2 focus:ring-2 focus:ring-indigo-500" placeholder="Rövid leírás a csoportról..."></textarea>
           </div>
+          
           <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition">
             Csoport létrehozása
           </button>
         </form>
       </div>
 
-      <!-- Meglévő csoportok -->
       <div class="card">
         <h2 class="text-2xl font-semibold mb-4">Jelenlegi csoportjaid</h2>
         <div id="group-list" class="space-y-3">
@@ -63,9 +66,10 @@
 
   <script>
     // ======= BEÁLLÍTÁSOK =======
-    const API_URL = "http://127.0.0.1:5000";
-    const userId = localStorage.getItem("user_id") || 1;
-    const username = localStorage.getItem("username") || "TesztFelhasználó";
+    const API_URL = "http://127.0.0.1:5000";  // Flask szerver címe
+    
+    let userId = localStorage.getItem("user_id"); 
+    let username = localStorage.getItem("username");
 
     const errorBox = document.getElementById("error");
     const successBox = document.getElementById("success");
@@ -73,6 +77,19 @@
     const createForm = document.getElementById("create-form");
     const groupNameInput = document.getElementById("group-name");
     const groupDescInput = document.getElementById("group-desc");
+    const backBtn = document.getElementById("back-btn");
+
+    function logoutUser() {
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("username");
+        alert("A felhasználói azonosító érvénytelen. Kérjük, jelentkezzen be újra.");
+        window.location.href = 'index.html'; 
+    }
+
+    // Kezdeti ellenőrzés
+    if (!userId || !username || userId === 'null') {
+        logoutUser();
+    }
 
     function showError(msg) {
       successBox.classList.add("hidden");
@@ -87,12 +104,31 @@
       setTimeout(() => successBox.classList.add("hidden"), 4000);
     }
 
+    // Vissza gomb
+    backBtn.addEventListener('click', () => {
+        window.location.href = 'calendar.html'; // feltételezett naptár oldal
+    });
+
+
     // ======= CSOPORTOK BETÖLTÉSE =======
     async function loadGroups() {
       groupList.innerHTML = "<p class='text-gray-500 text-center'>Betöltés...</p>";
       try {
         const res = await fetch(`${API_URL}/groups/user/${userId}`);
-        if (!res.ok) throw new Error("Nem sikerült lekérni a csoportokat.");
+        
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({})); 
+            const errorMessage = errorData.hiba || errorData.error || `${res.status} ${res.statusText}`;
+
+            // HA A HIBA EREDETE A FELHASZNÁLÓ AZONOSÍTÓJA, KIJELENTKEZTETÉS
+            if (errorMessage.includes("Felhasználó nem található") || res.status === 404) {
+                logoutUser();
+                return; 
+            }
+            
+            throw new Error(errorMessage);
+        }
+        
         const data = await res.json();
 
         if (!data || data.length === 0) {
@@ -104,12 +140,21 @@
         data.forEach(g => {
           const div = document.createElement("div");
           div.className = "p-3 border rounded flex justify-between items-center bg-gray-50";
+          
+          let memberText = 'Nincsenek tagok';
+          if (g.members && Array.isArray(g.members)) {
+             memberText = g.members.map(m => m.username).join(', ');
+          } else if (g.member_usernames && Array.isArray(g.member_usernames)) {
+             memberText = g.member_usernames.join(', ');
+          }
+
           div.innerHTML = `
             <div>
-              <h3 class="font-semibold text-indigo-700">${g.name || g.group_name}</h3>
+              <h3 class="font-semibold text-indigo-700">${g.name || g.group_name || 'Névtelen csoport'}</h3>
               <p class="text-sm text-gray-600">${g.description || "Nincs leírás"}</p>
+              <p class="text-xs text-gray-500 mt-1">Tagok: ${memberText}</p>
             </div>
-            <button class="delete-btn bg-red-500 text-white px-3 py-1 rounded" data-id="${g.id}">
+            <button class="delete-btn bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600" data-id="${g.id}">
               Törlés
             </button>
           `;
@@ -120,50 +165,58 @@
           btn.addEventListener("click", deleteGroup)
         );
       } catch (err) {
-        showError("Hiba: " + err.message);
+        showError(`Hiba a csoportok betöltésekor: ${err.message}. Kérlek ellenőrizd a szerver 'GET /groups/user/{userId}' végpontját.`);
       }
     }
 
-    // ======= CSOPORT LÉTREHOZÁSA =======
+    // ======= CSOPORT LÉTREHOZÁSA (MAXIMÁLIS KOMPATIBILITÁS) =======
     createForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const name = groupNameInput.value.trim();
       const description = groupDescInput.value.trim();
-
+      
       if (!name) {
         showError("Kérlek add meg a csoport nevét!");
         return;
       }
-
-      const payload = {
-        name: name,
-        group_name: name, // a backend így is és úgy is megkapja
-        description: description || "Nincs leírás megadva.",
-        creator_id: userId,
-        creator_username: username
+      
+      // KULCS FONTOSSÁGÚ: Minden lehetséges kulcsnévvel elküldjük az adatot a szervernek.
+      const groupData = {
+            name: name,             // 1. leggyakoribb kulcs a névnek
+            group_name: name,       // 2. leggyakoribb kulcs a névnek
+            description: description || "Nincs leírás megadva.",
+            creator_id: userId,     // 1. leggyakoribb kulcs az ID-nek
+            user_id: userId         // 2. leggyakoribb kulcs az ID-nek
+            // member_usernames továbbra sincs benne
       };
 
       try {
         const res = await fetch(`${API_URL}/groups`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify(groupData)
         });
 
         const result = await res.json();
 
         if (!res.ok) {
-          showError(result.hiba || "A csoport létrehozása sikertelen.");
-          return;
+            const serverError = result.hiba || result.error || "A csoport létrehozása sikertelen (ismeretlen szerveroldali hiba).";
+            
+            if (serverError.includes("Felhasználói azonosító") || serverError.includes("nem található")) {
+                logoutUser();
+                return;
+            }
+
+            showError(`Hiba: ${serverError}. A küldött adatok: ${JSON.stringify(groupData)}`);
+            return;
         }
 
         showSuccess(`Csoport sikeresen létrehozva: ${name}`);
-        groupNameInput.value = "";
-        groupDescInput.value = "";
+        createForm.reset();
         loadGroups();
       } catch (err) {
-        showError("Nem sikerült kapcsolódni a szerverhez.");
+        showError("Nem sikerült kapcsolódni a szerverhez (leállt a szerver, vagy rossz a cím).");
       }
     });
 

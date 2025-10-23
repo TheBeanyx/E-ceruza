@@ -74,9 +74,9 @@
                 <p id="welcome-message" class="text-lg text-gray-600 mt-1"></p>
             </div>
             <div class="flex items-center space-x-4">
-                <button id="group-icon" class="relative p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow-md">
+                <a href="schedule.html" id="group-icon" class="relative p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow-md">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                </button>
+                </a>
                 <button id="chat-icon" class="relative p-3 bg-indigo-600 text-white rounded-full hover:bg-indigo-700 transition duration-200 shadow-md">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                     <span id="unread-count" class="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 transform translate-x-1/2 -translate-y-1/2 bg-red-600 rounded-full hidden">0</span>
@@ -247,11 +247,13 @@
         const sendMessageForm = document.getElementById('send-message-form');
 
         // CSOPORT ELEMEK
-        const groupModal = document.getElementById('group-modal');
-        const groupIcon = document.getElementById('group-icon');
-        const closeGroupButton = document.getElementById('close-group-modal');
-        const createGroupForm = document.getElementById('create-group-form');
-        const currentGroupsList = document.getElementById('current-groups-list');
+        // JAVÍTVA: Csoport ikon most már <a href> tag, de ha visszatesszük a modal-t, akkor kellhet a button is.
+        // Most az A tag miatt nem kell a JS event listenere a groupIcon-ra. 
+        // const groupModal = document.getElementById('group-modal');
+        // const groupIcon = document.getElementById('group-icon');
+        // const closeGroupButton = document.getElementById('close-group-modal');
+        // const createGroupForm = document.getElementById('create-group-form');
+        // const currentGroupsList = document.getElementById('current-groups-list');
         const prevGroupBtn = document.getElementById('prev-group-btn');
         const nextGroupBtn = document.getElementById('next-group-btn');
 
@@ -342,7 +344,10 @@
         // Csoportok lekérdezése
         async function fetchGroups() {
             try {
+                // A groups/user/{id} endpointot feltételezzük a csoportok lekérdezésére
+                // Az eredeti schedule.html kód a /study_groups/{id} endpointot használta a fetchGroups-ra
                 const response = await fetch(`${API_BASE_URL}/study_groups/${userId}`);
+                
                 if (!response.ok) {
                     throw new Error('Hiba történt a csoportok lekérdezése közben.');
                 }
@@ -352,9 +357,6 @@
                 const defaultGroup = { id: 'personal', name: 'Saját Feladataim', description: 'Csak a saját feljegyzéseid.' };
                 globalGroups = [defaultGroup, ...groups];
                 
-                // Megjelenítjük a csoportlistát a modálban
-                renderGroupList(globalGroups);
-
                 // Megpróbáljuk beállítani az aktuális csoportot
                 if (globalGroups.length > 0) {
                     currentGroupIndex = Math.min(currentGroupIndex, globalGroups.length - 1);
@@ -392,8 +394,7 @@
                  prevGroupBtn.classList.add('opacity-50');
                  nextGroupBtn.classList.add('opacity-50');
             }
-
-            // Beállítjuk a feladat űrlapján az aktuális csoport ID-t (ha nem saját)
+            
             const currentGroup = globalGroups[currentGroupIndex];
             currentGroupIdInput.value = currentGroup.id === 'personal' ? '' : currentGroup.id;
         }
@@ -420,8 +421,9 @@
             tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
             
             let url = '';
+            // Ha a kiválasztott csoport az alapértelmezett "personal"
             if (group.id === 'personal') {
-                url = `${API_BASE_URL}/tasks/${userId}`; // Saját feladatok
+                url = `${API_BASE_URL}/tasks/personal/${userId}`; 
             } else {
                 url = `${API_BASE_URL}/tasks/group/${group.id}`; // Csoportos feladatok
             }
@@ -464,7 +466,8 @@
 
             upcomingTasks.forEach(task => {
                 const typeClass = getTypeClass(task.type);
-                const isGroupTask = task.group_id;
+                // Csoportos feladat, ha van group_id és az nem 'null' (bár a backend null-t küld)
+                const isGroupTask = task.group_id; 
 
                 const taskElement = document.createElement('div');
                 taskElement.className = `p-5 rounded-lg ${typeClass} shadow-lg flex justify-between items-start`;
@@ -548,7 +551,7 @@
 
             const taskData = {
                 user_id: userId,
-                group_id: groupId, // Ez a kulcs
+                group_id: groupId, 
                 title: document.getElementById('task-title').value,
                 type: document.getElementById('task-type').value,
                 deadline: deadlineInput + ':00',
@@ -620,115 +623,10 @@
         }
 
         // -------------------------------------------------------------------
-        // 2. CSOPORT KEZELÉS MODAL FUNKCIÓK
+        // 2. CSOPORT KEZELÉS (A MODÁL ITT VAN, DE A KEZELÉS MÁR A schedule.html-EN)
         // -------------------------------------------------------------------
-
-        groupIcon.addEventListener('click', () => {
-            groupModal.classList.remove('hidden');
-            groupModal.classList.add('flex'); 
-            fetchGroups(); // Frissítjük a csoportok listáját megnyitáskor
-        });
-
-        closeGroupButton.addEventListener('click', () => {
-            groupModal.classList.add('hidden');
-            groupModal.classList.remove('flex');
-        });
         
-        // Csoportok megjelenítése a modálban
-        function renderGroupList(groups) {
-            // Nem jelenítjük meg a "Saját Feladataim" csoportot itt, csak a valódiakat
-            const actualGroups = groups.filter(g => g.id !== 'personal'); 
-
-            currentGroupsList.innerHTML = '';
-            
-            if (actualGroups.length === 0) {
-                currentGroupsList.innerHTML = '<p class="text-gray-500">Nincsenek jelenlegi csoportok.</p>';
-                return;
-            }
-
-            actualGroups.forEach(group => {
-                const groupElement = document.createElement('div');
-                groupElement.className = 'p-4 border rounded-lg bg-gray-50 shadow-sm';
-                
-                // Tagok listázása
-                const membersList = Array.isArray(group.members) ? group.members.join(', ') : 'Nincs adat';
-
-                groupElement.innerHTML = `
-                    <h5 class="font-bold text-lg text-indigo-700">${group.name}</h5>
-                    <p class="text-sm text-gray-600 mt-1">${group.description || 'Nincs leírás.'}</p>
-                    <p class="text-xs text-gray-500 mt-2 border-t pt-1">Tagok: ${membersList}</p>
-                `;
-                currentGroupsList.appendChild(groupElement);
-            });
-        }
-        
-        // **JAVÍTOTT RÉSZ: Csoport létrehozása űrlap kezelése**
-        createGroupForm.addEventListener('submit', async function(event) {
-            event.preventDefault();
-
-            const groupName = document.getElementById('group-name').value;
-            // A tagokat vesszővel elválasztott listaként küldjük el (username-ek)
-            const membersString = document.getElementById('group-members').value;
-            const description = document.getElementById('group-description').value;
-
-            // HIBAJAVÍTÁS: Kiszűrjük az üres stringeket és a duplikátumokat.
-            let membersArray = membersString.split(',')
-                                        .map(u => u.trim())
-                                        .filter(u => u !== '');
-            
-            // Hozzáadjuk a létrehozó (saját) felhasználónevet, ha még nincs benne
-            if (!membersArray.includes(username)) {
-                membersArray.push(username); 
-            }
-            
-            // Duplikátumok eltávolítása a végső listából
-            membersArray = [...new Set(membersArray)];
-
-
-            // HIBAJAVÍTÁS ELLENŐRZÉS: Legalább a létrehozónak benne kell lennie a listában
-            if (membersArray.length === 0) {
-                 showMessage(errorMessage, 'Hiba: Nem sikerült feldolgozni a tagok listáját.', true);
-                 return;
-            }
-
-            const groupData = {
-                name: groupName,
-                creator_id: userId,
-                members: membersArray, // Ezt küldjük a backendnek
-                description: description
-            };
-
-            try {
-                const response = await fetch(`${API_BASE_URL}/study_groups`, {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json' 
-                    },
-                    body: JSON.stringify(groupData)
-                });
-
-                const result = await response.json();
-
-                if (!response.ok) {
-                    // Általános hibaüzenet javítása: ha 400-as (Bad Request) hibát kapunk, a hibaüzenetet kiírjuk
-                    const errorMsg = result.hiba 
-                        ? result.hiba 
-                        : (response.statusText || 'Hiba történt a csoport létrehozásakor. (Lehet, hogy érvénytelen felhasználónevet adtál meg.)');
-                        
-                    showMessage(errorMessage, errorMsg, true);
-                    return;
-                }
-
-                showMessage(successMessage, result.uzenet, false);
-                createGroupForm.reset();
-                fetchGroups(); // Frissítjük a csoportok listáját
-                
-            } catch (error) {
-                // Ez a blokk fut le, ha a szerver nem érhető el (pl. leállt a Flask)
-                showMessage(errorMessage, `**Hiba történt a szerverrel való kommunikáció során (Csoport létrehozása).** Kérjük, ellenőrizze, hogy a Python szerver fut-e!`, true);
-            }
-        });
-
+        // A modál kezelés itt lévő JS-ét kikommenteltem/eltávolítottam, mert a csoport ikon most már közvetlenül a schedule.html-re visz.
 
         // -------------------------------------------------------------------
         // 3. CSEVEGÉS FUNKCIÓK

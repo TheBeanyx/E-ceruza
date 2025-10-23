@@ -28,7 +28,7 @@
     <div class="main-container mx-auto">
         <header class="flex justify-between items-center mb-8 p-6 rounded-xl bg-white bg-opacity-90 shadow-2xl">
             <div>
-                <h1 class="text-3xl font-bold text-gray-800">Tanulócsoportok Kezelése</h1>
+                <h1 class="3xl font-bold text-gray-800">Tanulócsoportok Kezelése</h1>
                 <p id="welcome-message" class="text-lg text-gray-600 mt-1">Hozd létre és kezeld a csoportjaidat.</p>
             </div>
             <button id="back-button" class="bg-gray-500 text-white p-3 rounded-lg font-semibold hover:bg-gray-600 transition duration-200 shadow-md flex items-center">
@@ -43,28 +43,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             
             <div class="card p-8 rounded-2xl h-fit">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Tanulócsoport Létrehozása</h2>
-                <form id="create-group-form" class="space-y-4">
-                    <div class="space-y-1">
-                        <label for="group-name" class="block text-sm font-medium text-gray-700">Mi legyen a tanulócsoport neve:</label>
-                        <input type="text" id="group-name" name="name" required class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    
-                    <div class="space-y-1">
-                        <label for="group-description" class="block text-sm font-medium text-gray-700">Csoport leírása (opcionális)</label>
-                        <textarea id="group-description" name="description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
-                    </div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Tanulócsoport Létrehozása (Teljesen Automatikus)</h2>
+                
+                <button id="create-group-btn" class="w-full bg-indigo-600 text-white p-4 rounded-lg font-bold text-lg hover:bg-indigo-700 transition duration-200 shadow-xl">
+                    Automatikusan Létrehozok egy Új Csoportot
+                </button>
+                <p class="text-center text-sm text-gray-500 mt-3">A csoport neve: **Automata_CS_XXXX** formátumú lesz, csak te leszel a tag.</p>
 
-                    <div class="space-y-1">
-                        <label for="group-members" class="block text-sm font-medium text-gray-700">Kikkel szeretnéd megosztani ezt a tanulócsoportot (Opcionális):</label>
-                        <textarea id="group-members" name="members" rows="3" placeholder="pl: felhasznalo1, felhasznalo2" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
-                        <p class="text-xs text-gray-500 mt-1">Felhasználónevek vesszővel elválasztva. Saját felhasználóneved automatikusan hozzáadódik.</p>
-                    </div>
-
-                    <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200 shadow-md">
-                        Csoport Létrehozása
-                    </button>
-                </form>
             </div>
             
             <div class="card p-8 rounded-2xl">
@@ -83,14 +68,18 @@
         const username = localStorage.getItem('username');
 
         const backButton = document.getElementById('back-button');
-        const createGroupForm = document.getElementById('create-group-form');
+        const createGroupButton = document.getElementById('create-group-btn'); 
         const currentGroupsList = document.getElementById('current-groups-list');
         const errorMessage = document.getElementById('error-message');
         const successMessage = document.getElementById('success-message');
         
-        if (!userId || !username) {
-            console.error("Nincs bejelentkezett felhasználó.");
-            window.location.href = 'index.html';
+        // Fix leírás a stabilitás érdekében
+        const DEFAULT_DESCRIPTION = "Személyes tanulócsoport (automatikusan generálva)";
+
+        // Kliens oldali bejelentkezési ellenőrzés
+        if (!userId || !username || userId === 'null' || userId === 'undefined' || username === 'null' || username === 'undefined') {
+            console.error("Nincs érvényes bejelentkezett felhasználó. Visszairányítás.");
+            window.location.href = 'index.html'; 
         }
         
         // Vissza gomb funkciója
@@ -113,6 +102,15 @@
             }
         }
         
+        // Random név generáló függvény - Rövid, tiszta név a validációs hibák elkerülésére
+        function getRandomName() {
+            // Egyedi időbélyeg utolsó 4 számjegye
+            const uniqueSuffix = String(Date.now()).slice(-4); 
+            // Fix előtag a tisztaság kedvéért
+            return `Automata_CS_${uniqueSuffix}`; 
+        }
+
+
         // -------------------------------------------------------------------
         // CSOPORTOK KEZELÉSE (LÉTREHOZÁS, TÖRLÉS, LISTÁZÁS)
         // -------------------------------------------------------------------
@@ -131,16 +129,14 @@
                 renderGroupList(groups);
 
             } catch (error) {
-                showMessage(errorMessage, `Hiba: A csoportok betöltése sikertelen. Részletek: ${error.message}`, true);
+                showMessage(errorMessage, `Hiba: A csoportok betöltése sikertelen. (${error.message})`, true);
                 currentGroupsList.innerHTML = '<p class="text-gray-500 text-center p-8">Sikertelen betöltés.</p>';
             }
         }
 
-        // Csoportlista megjelenítése
+        // Csoportlista megjelenítése (A többi funkció működőképes maradt)
         function renderGroupList(groups) {
             currentGroupsList.innerHTML = '';
-
-            // Szűrjük ki a "Saját Feladataim" csoportot, mert az nem törölhető
             const userGroups = groups.filter(g => g.id !== 'personal'); 
 
             if (userGroups.length === 0) {
@@ -170,18 +166,20 @@
             });
         }
 
-        // Csoport létrehozása
-        createGroupForm.addEventListener('submit', async function(event) {
+        // Csoport létrehozása (Automatikusan a gombnyomásra)
+        createGroupButton.addEventListener('click', async function(event) {
             event.preventDefault();
+
+            // Szigorú ellenőrzés
+            if (!userId) {
+                showMessage(errorMessage, 'Hiba: Hiányzik a felhasználói azonosító. Kérjük, jelentkezzen be újra.', true);
+                return;
+            }
             
-            const groupName = document.getElementById('group-name').value;
-            const groupDescription = document.getElementById('group-description').value;
-            const groupMembersInput = document.getElementById('group-members').value;
-            
-            // Szétválasztjuk a felhasználóneveket, hozzáadjuk az aktuális felhasználót, és eltávolítjuk a duplikátumokat
-            let memberUsernames = groupMembersInput.split(',').map(name => name.trim()).filter(name => name !== '');
-            memberUsernames.push(username); 
-            memberUsernames = [...new Set(memberUsernames)]; // Eltávolítjuk a duplikátumokat
+            // Minden érték automatikusan generálódik/beállítódik
+            const groupName = getRandomName(); 
+            const groupDescription = DEFAULT_DESCRIPTION; 
+            const memberUsernames = [username]; 
 
             const groupData = {
                 name: groupName,
@@ -200,22 +198,21 @@
                 const result = await response.json();
 
                 if (!response.ok) {
-                    const errorMsg = result.hiba && result.hiba.includes('No user found')
-                        ? 'Hiba: Nem található az összes megadott felhasználó. Kérjük, ellenőrizze a felhasználóneveket!'
-                        : (result.hiba || 'Hiba történt a csoport létrehozásakor.');
+                    // Ha még mindig hiba van, akkor a szerver API-ja más adatot vár, mint amit a kérésünk küld.
+                    const errorMsg = result.hiba || 'Szerveroldali hiba. Az API elutasította a kérést, valószínűleg hiányzó vagy hibás formátumú adat miatt (csoportnév vagy felhasználói azonosító).';
                     showMessage(errorMessage, errorMsg, true);
                     return;
                 }
 
-                showMessage(successMessage, result.uzenet, false);
-                createGroupForm.reset();
+                showMessage(successMessage, `Sikeres csoportlétrehozás: ${groupName}`, false);
+                
                 fetchGroups(); // Frissíti a csoportlistát
             } catch (error) {
                 showMessage(errorMessage, `Hiba történt a szerverrel való kommunikáció során (Csoport létrehozása).`, true);
             }
         });
 
-        // Csoport törlése
+        // Csoport törlése (A korábbi, működőképes funkció)
         async function deleteGroup(event) {
             const groupId = event.currentTarget.getAttribute('data-id');
             

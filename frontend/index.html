@@ -52,21 +52,21 @@
                 <form id="register-form" class="space-y-4">
                     <div class="space-y-1">
                         <label for="reg-name" class="block text-sm font-medium text-gray-700">Teljes Név (Vezetéknév Keresztnév)</label>
-                        <input type="text" id="reg-name" name="name" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="text" id="reg-name" name="name" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
                     <div class="space-y-1">
                         <label for="reg-email" class="block text-sm font-medium text-gray-700">E-mail cím</label>
-                        <input type="email" id="reg-email" name="email" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="email" id="reg-email" name="email" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     <div class="space-y-1">
                         <label for="reg-password" class="block text-sm font-medium text-gray-700">Jelszó</label>
-                        <input type="password" id="reg-password" name="password" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="password" id="reg-password" name="password" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
 
                     <div class="space-y-1">
                         <label for="reg-password-confirm" class="block text-sm font-medium text-gray-700">Jelszó megerősítése</label>
-                        <input type="password" id="reg-password-confirm" name="password-confirm" **required** class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <input type="password" id="reg-password-confirm" name="password-confirm" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                     </div>
                     
                     <button type="submit" class="w-full bg-green-600 text-white p-3 rounded-lg font-semibold hover:bg-green-700 transition duration-200 shadow-md">
@@ -212,12 +212,16 @@
             const result = await postData('register', data);
 
             if (result) {
+                // JAVÍTÁS: Biztosítsuk, hogy a helyes felhasználónevet használjuk
+                // Ha a backend a `username` helyett `felhasznalonev`-et küldene vissza, ez kezeli.
+                const generatedUsername = result.username || result.felhasznalonev || 'ismeretlen_felhasznalo';
+
                 // Sikeres regisztráció esetén
-                const successMsg = `Sikeres regisztráció! A felhasználóneved: <strong>${result.username}</strong>. Kérlek, jelentkezz be!`;
+                const successMsg = `Sikeres regisztráció! A felhasználóneved: <strong>${generatedUsername}</strong>. Kérlek, jelentkezz be!`;
                 showMessage(successMessage, successMsg, false);
                 
                 // Bejelentkezési űrlap feltöltése az automatikusan generált felhasználónévvel
-                document.getElementById('login-username').value = result.username;
+                document.getElementById('login-username').value = generatedUsername;
                 
                 // Regisztrációs űrlap törlése
                 this.reset();

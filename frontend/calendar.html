@@ -92,16 +92,10 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div class="lg:col-span-1 card p-8 rounded-2xl h-fit">
-                <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Feladat</h2>
+                <h2 id="form-title" class="text-2xl font-bold text-gray-800 mb-6 border-b-2 pb-2">Új Személyes Feladat</h2>
                 <form id="add-task-form" class="space-y-4">
                     <input type="hidden" id="task-id-to-edit" value="">
                     
-                    <div class="space-y-1">
-                        <label for="group-select" class="block text-sm font-medium text-gray-700">Csoport kiválasztása:</label>
-                        <select id="group-select" name="group_id" required class="w-full p-3 border border-gray-300 rounded-lg">
-                            </select>
-                    </div>
-
                     <div class="space-y-1">
                         <label for="task-title" class="block text-sm font-medium text-gray-700">Feladat neve</label>
                         <input type="text" id="task-title" name="title" required class="w-full p-3 border border-gray-300 rounded-lg">
@@ -128,4 +122,443 @@
                     </div>
                     
                     <div class="space-y-1">
-                        <label for="task-description" class="block text-
+                        <label for="task-description" class="block text-sm font-medium text-gray-700">Leírás (opcionális)</label>
+                        <textarea id="task-description" name="description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg"></textarea>
+                    </div>
+                    
+                    <div class="space-y-1">
+                        <label for="task-online-link" class="block text-sm font-medium text-gray-700">Online Link (opcionális)</label>
+                        <input type="url" id="task-online-link" name="online_link" placeholder="Pl: https://classroom.google.com/..." class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+
+                    <button type="submit" class="w-full bg-indigo-600 text-white p-3 rounded-lg font-semibold hover:bg-indigo-700 transition duration-200 shadow-md">
+                        Feladat Mentése
+                    </button>
+                </form>
+            </div>
+
+            <div class="lg:col-span-2 card p-8 rounded-2xl">
+                <div class="flex justify-between items-center mb-6 border-b-2 pb-2">
+                    <h2 id="tasks-header" class="text-2xl font-bold text-gray-800 text-center flex-1">Közelgő Személyes Feladataid</h2>
+                </div>
+                <div id="tasks-list" class="space-y-4">
+                    <p class="text-gray-500 text-center" id="loading-message">Feladatok betöltése...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    
+    <div id="chat-modal" class="fixed inset-0 bg-gray-600 bg-opacity-75 z-50 flex items-center justify-center hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-xl md:max-w-2xl lg:max-w-3xl flex flex-col modal-content-wrapper">
+            
+            <div class="p-6 border-b flex justify-between items-center flex-shrink-0">
+                <h3 class="text-2xl font-bold text-gray-800">Privát Üzenet Előzmények</h3>
+                <button id="close-chat-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <div class="flex-grow min-h-0 p-6 pb-0">
+                <div class="overflow-y-auto h-full bg-gray-50 space-y-4 rounded-lg" id="messages-list">
+                    <p class="text-gray-500 text-center text-sm py-10">Nincsenek üzenet előzmények.</p>
+                </div>
+            </div>
+
+            <div class="p-6 pt-4 border-t flex-shrink-0">
+                <h4 class="text-lg font-semibold mb-3 border-b pb-1">Új Üzenet Küldése</h4>
+                <form id="send-message-form" class="space-y-3">
+                    <input type="text" id="recipient-username" placeholder="Címzett felhasználóneve (pl. buzás_benedek)" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <textarea id="message-content" rows="3" placeholder="Az üzenet tartalma..." required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                    <button type="submit" class="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold hover:bg-blue-600 transition duration-200 shadow-md">
+                        Üzenet Küldése
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE_URL = 'http://127.0.0.1:5000';
+        
+        const tasksList = document.getElementById('tasks-list');
+        const tasksHeader = document.getElementById('tasks-header'); 
+        const errorMessage = document.getElementById('error-message');
+        const successMessage = document.getElementById('success-message');
+        const submitButton = document.querySelector('#add-task-form button[type="submit"]');
+        const formTitle = document.getElementById('form-title');
+        
+        // CSEVEGÉS ELEMEK
+        const chatModal = document.getElementById('chat-modal');
+        const chatIcon = document.getElementById('chat-icon');
+        const closeChatButton = document.getElementById('close-chat-modal');
+        const unreadCountSpan = document.getElementById('unread-count');
+        const messagesList = document.getElementById('messages-list');
+        const sendMessageForm = document.getElementById('send-message-form');
+
+        // CSOPORT KEZELŐ IKON
+        const groupIcon = document.getElementById('group-icon');
+
+        
+        const userId = localStorage.getItem('user_id');
+        const username = localStorage.getItem('username');
+        const fullName = localStorage.getItem('full_name');
+
+        // Globális állapot
+        let globalTasks = [];
+        
+        // Azonnali ellenőrzés
+        if (!userId || !username) {
+            console.error("Nincs bejelentkezett felhasználó. Átirányítás az index.html-re...");
+            window.location.href = 'index.html';
+        } else {
+            document.getElementById('welcome-message').textContent = `Üdvözöllek, ${fullName || username}!`;
+        }
+        
+        // -------------------------------------------------------------------
+        // SEGÉDFÜGGVÉNYEK
+        // -------------------------------------------------------------------
+        function showMessage(element, message, isError = false) {
+            // Bezárjuk a másik üzenetet, hogy ne zavarja be
+            if (element === errorMessage) {
+                successMessage.classList.add('hidden');
+            } else {
+                errorMessage.classList.add('hidden');
+            }
+
+            element.innerHTML = message; // A message-t már HTML-ként kezeljük
+            element.classList.remove('hidden');
+            
+            if (!isError && element.id !== 'error-message') {
+                setTimeout(() => {
+                    element.classList.add('hidden');
+                }, 5000);
+            }
+        }
+        
+        function formatDeadline(isoString) {
+            const date = new Date(isoString);
+            const options = { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' };
+            return date.toLocaleDateString('hu-HU', options);
+        }
+
+        function resetFormToAddTask() {
+            document.getElementById('add-task-form').reset();
+            document.getElementById('task-id-to-edit').value = '';
+            
+            formTitle.textContent = 'Új Személyes Feladat';
+            submitButton.textContent = 'Feladat Mentése';
+        }
+
+        // Kijelentkezés
+        document.getElementById('logout-button').addEventListener('click', () => {
+            localStorage.removeItem('user_id');
+            localStorage.removeItem('username');
+            localStorage.removeItem('full_name');
+            
+            showMessage(successMessage, '<p>Sikeresen kijelentkeztél. Átirányítás a bejelentkezési oldalra...</p>', false);
+            
+            setTimeout(() => {
+                window.location.href = 'index.html';
+            }, 2000);
+        });
+
+        // -------------------------------------------------------------------
+        // 1. FELADATOK FUNKCIÓK
+        // -------------------------------------------------------------------
+        
+        function getTypeClass(type) {
+            switch (type) {
+                case 'Dolgozat':
+                    return 'priority-dolgozat border-l-8 border-orange-600';
+                case 'Házifeladat':
+                    return 'priority-hazifeladat border-l-8 border-indigo-600';
+                case 'Beadandó feladat':
+                    return 'priority-beadandofeladat border-l-8 border-teal-600';
+                case 'Egyéb feljegyzések':
+                    return 'priority-egyebfeljegyzesek border-l-8 border-slate-600';
+                default:
+                    return 'bg-gray-100 border-l-8 border-gray-400';
+            }
+        }
+        
+        // Csoport kezelő ikonra kattintás (JELENLEG NEM MŰKÖDIK)
+        groupIcon.addEventListener('click', () => {
+            const message = `
+                <div class="flex items-center justify-center space-x-2">
+                    <svg class="w-6 h-6 text-red-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <p>Jelenleg ez a funkció nem működik!</p>
+                </div>
+            `;
+            showMessage(errorMessage, message, true); 
+        });
+
+        // Feladatok lekérdezése (CSAK SZEMÉLYES FELADATOK)
+        async function fetchTasks() {
+            tasksList.innerHTML = '<p class="text-gray-500 text-center">Feladatok betöltése...</p>';
+            
+            const url = `${API_BASE_URL}/tasks/${userId}`; // Csak a személyes feladatokat kéri le
+
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error('Hiba történt a feladatok lekérdezése közben.');
+                }
+                const tasks = await response.json();
+                globalTasks = tasks;
+                renderTasks(tasks);
+                errorMessage.classList.add('hidden');
+            } catch (error) {
+                showMessage(errorMessage, `<p>Hiba: A feladatok betöltése sikertelen. Részletek: ${error.message}</p>`, true);
+                tasksList.innerHTML = '<p class="text-gray-500 text-center p-8">Sikertelen betöltés.</p>';
+            }
+        }
+
+        // Feladatok megjelenítése (CSAK SZEMÉLYES FELADATOK)
+        function renderTasks(tasks) {
+            tasksList.innerHTML = '';
+            const now = new Date();
+            
+            const upcomingTasks = tasks.filter(task => {
+                const deadline = new Date(task.deadline);
+                return deadline > now;
+            });
+
+            if (upcomingTasks.length === 0) {
+                tasksList.innerHTML = '<p class="text-gray-500 text-center p-8">Nincsenek közelgő személyes feladataid. Adj hozzá egy újat!</p>';
+                return;
+            }
+
+            upcomingTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+
+            upcomingTasks.forEach(task => {
+                const typeClass = getTypeClass(task.type);
+                
+                const taskElement = document.createElement('div');
+                taskElement.className = `card p-5 rounded-lg flex justify-between items-center transition duration-300 hover:shadow-lg ${typeClass}`;
+                taskElement.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-xl font-semibold text-gray-800 truncate">${task.title}</h3>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <span class="font-medium text-gray-700">${task.type}</span> 
+                        </p>
+                        <p class="text-sm text-gray-700 mt-2">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            Határidő: ${formatDeadline(task.deadline)}
+                            ${task.reminder_days > 0 ? `(Emlékeztető: ${task.reminder_days} nappal előtte)` : '(Nincs emlékeztető)'}
+                        </p>
+                        ${task.description ? `<p class="text-sm text-gray-700 mt-2">Leírás: ${task.description}</p>` : ''}
+                        ${task.online_link ? `<p class="text-sm mt-2"><a href="${task.online_link}" target="_blank" class="text-indigo-600 hover:text-indigo-800 font-medium truncate inline-block max-w-full">Online Link</a></p>` : ''}
+                    </div>
+                    <div class="flex space-x-2 ml-4 flex-shrink-0">
+                        <button data-id="${task.id}" class="delete-task-btn p-2 text-red-500 hover:text-red-700 transition duration-200" title="Feladat Törlése">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                `;
+                tasksList.appendChild(taskElement);
+            });
+            
+            document.querySelectorAll('.delete-task-btn').forEach(button => {
+                button.addEventListener('click', deleteTask);
+            });
+        }
+        
+        // -------------------------------------------------------------------
+        // 2. FELADAT LÉTREHOZÁS/TÖRLÉS
+        // -------------------------------------------------------------------
+        
+        // Feladat létrehozása (mindig személyes feladatként)
+        document.getElementById('add-task-form').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const formData = new FormData(this);
+            const taskData = {
+                creator_id: userId,
+                group_id: null, // FIXEN NULL, mert ez most csak személyes feladatokat ad hozzá
+                title: formData.get('title'),
+                type: formData.get('type'),
+                deadline: formData.get('deadline'),
+                reminder_days: parseInt(formData.get('reminder')),
+                description: formData.get('description'),
+                online_link: formData.get('online_link')
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData)
+                });
+                
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showMessage(errorMessage, `<p>Hiba a feladat mentésekor: ${result.hiba || 'Ismeretlen szerverhiba.'}</p>`, true);
+                    return;
+                }
+
+                showMessage(successMessage, `<p>${result.uzenet}</p>`, false);
+                resetFormToAddTask();
+                fetchTasks(); // Frissíti a személyes feladatlistát
+            } catch (error) {
+                showMessage(errorMessage, '<p>Nem sikerült kapcsolódni a szerverhez (Feladat mentés).</p>', true);
+                console.error('Task Save Error:', error);
+            }
+        });
+
+        // Feladat törlése
+        async function deleteTask(event) {
+            const taskId = event.currentTarget.getAttribute('data-id');
+            if (!confirm("Biztosan törölni szeretnéd ezt a feladatot?")) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/tasks/${taskId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+
+                if (!response.ok) {
+                    showMessage(errorMessage, `<p>Hiba a feladat törlésekor: ${result.hiba || 'Ismeretlen szerverhiba.'}</p>`, true);
+                    return;
+                }
+
+                showMessage(successMessage, `<p>${result.uzenet}</p>`, false);
+                fetchTasks(); // Frissíti a személyes feladatokat
+            } catch (error) {
+                showMessage(errorMessage, '<p>Nem sikerült kapcsolódni a szerverhez (Feladat törlés).</p>', true);
+                console.error('Task Delete Error:', error);
+            }
+        }
+        
+        // -------------------------------------------------------------------
+        // 3. CSEVEGÉS MODAL
+        // -------------------------------------------------------------------
+        
+        function formatMessage(message) {
+            const isMine = message.is_sent_by_me;
+            const bubbleClass = isMine ? 'chat-bubble-mine' : 'chat-bubble-other';
+            const alignment = isMine ? 'items-end' : 'items-start';
+            const timestamp = new Date(message.timestamp).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' });
+            
+            return `
+                <div class="flex ${alignment}">
+                    <div class="max-w-xs md:max-w-md lg:max-w-lg p-3 rounded-xl shadow-md ${bubbleClass} flex flex-col">
+                        <div class="text-xs font-semibold ${isMine ? 'text-gray-100' : 'text-gray-500'} mb-1">
+                            ${isMine ? 'Én' : message.sender_username} &rarr; ${isMine ? message.recipient_username : 'Nekem'}
+                        </div>
+                        <div class="message-content text-sm break-words">${message.content}</div>
+                        <div class="text-right text-xs mt-1 ${isMine ? 'text-gray-300' : 'text-gray-500'}">${timestamp}</div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        async function fetchMessages() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/messages/${userId}`);
+                if (!response.ok) {
+                    throw new Error('Hiba történt az üzenetek lekérdezése közben.');
+                }
+                const messages = await response.json();
+                
+                messagesList.innerHTML = '';
+                if (messages.length === 0) {
+                    messagesList.innerHTML = '<p class="text-gray-500 text-center text-sm py-10">Nincsenek üzenet előzmények.</p>';
+                    unreadCountSpan.classList.add('hidden');
+                    return;
+                }
+
+                let unreadCount = 0;
+                messages.reverse().forEach(message => { // A listát fordítjuk, hogy alul legyen a legrégebbi
+                    messagesList.innerHTML += formatMessage(message);
+                    if (message.recipient_id === userId && !message.is_read) {
+                        unreadCount++;
+                    }
+                });
+                
+                // Görgessük le az aljára, hogy a legújabb üzenet látszódjon
+                messagesList.scrollTop = messagesList.scrollHeight;
+
+                if (unreadCount > 0) {
+                    unreadCountSpan.textContent = unreadCount;
+                    unreadCountSpan.classList.remove('hidden');
+                } else {
+                    unreadCountSpan.classList.add('hidden');
+                }
+                
+                errorMessage.classList.add('hidden');
+            } catch (error) {
+                messagesList.innerHTML = '<p class="text-red-500 text-center text-sm py-10">Hiba az üzenetek betöltésekor.</p>';
+                // A fetchTasks is kezelheti ezt a hibát, így itt csak logoljuk.
+                console.error('Message Fetch Error:', error.message);
+            }
+        }
+        
+        // Modal megnyitása
+        chatIcon.addEventListener('click', () => {
+            chatModal.classList.remove('hidden');
+            fetchMessages();
+        });
+
+        // Modal bezárása
+        closeChatButton.addEventListener('click', () => {
+            chatModal.classList.add('hidden');
+        });
+        
+        // Üzenetküldő űrlap kezelése
+        sendMessageForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const recipientUsername = document.getElementById('recipient-username').value;
+            const content = document.getElementById('message-content').value;
+
+            const messageData = {
+                sender_id: userId,
+                recipient_username: recipientUsername,
+                content: content
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/messages`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(messageData)
+                });
+
+                const result = await response.json();
+                
+                if (!response.ok) {
+                    const errorMsg = result.hiba && result.hiba.includes('nem található')
+                        ? 'Hiba: Nincs ilyen felhasználó. Kérjük, ellenőrizze a felhasználónevet!'
+                        : (result.hiba || 'Hiba történt az üzenet küldésekor.');
+                    showMessage(errorMessage, `<p>${errorMsg}</p>`, true);
+                    return;
+                }
+
+                showMessage(successMessage, `<p>${result.uzenet}</p>`, false);
+                sendMessageForm.reset();
+                fetchMessages(); 
+            } catch (error) {
+                showMessage(errorMessage, `<p>Hiba történt a szerverrel való kommunikáció során (Üzenetküldés).</p>`, true);
+            }
+        });
+
+
+        // Indításkor csak a feladatok és üzenetek lekérése marad
+        fetchTasks();
+        fetchMessages();
+
+        // Automatikus frissítés 10 másodpercenként (10000 ms)
+        setInterval(() => {
+            fetchTasks(); 
+            if (!chatModal.classList.contains('hidden')) {
+                fetchMessages();
+            }
+        }, 10000);
+    </script>
+</body>
+</html>

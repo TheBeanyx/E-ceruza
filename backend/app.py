@@ -21,13 +21,12 @@ db = SQLAlchemy(app)
 bcrypt = Bcrypt(app) 
 
 # --------------------------
-# ADATBÁZIS MODELL (User) - A HELYES SZERKEZET
+# ADATBÁZIS MODELL (User) - FIGYELD AZ EMAIL OSZLOPOT
 # --------------------------
 class User(db.Model):
-    # A tábla neve automatikusan 'user' lesz
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     full_name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(100), unique=True, nullable=False) # Ez a hiányzó oszlop!
+    email = db.Column(db.String(100), unique=True, nullable=False) # <--- Ezt keresi
     username = db.Column(db.String(80), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
 
@@ -35,7 +34,7 @@ class User(db.Model):
         return f'<User {self.username}>'
 
 # --------------------------
-# IN-MEMORY "ADATBÁZIS" TÁROLÓK (Ezek még mindig újrainduláskor elvesznek, a feladatokat és csoportokat később kell perzisztenssé tenni)
+# IN-MEMORY "ADATBÁZIS" TÁROLÓK
 # --------------------------
 groups = {}
 group_members = {} 
@@ -47,13 +46,11 @@ messages = {}
 # --------------------------
 
 def get_tasks_by_group(group_id):
-    """Visszaadja egy adott csoporthoz (group_id) tartozó feladatokat. 
-    A group_id=None a személyes feladatokat jelenti.
-    """
+    """Visszaadja egy adott csoporthoz (group_id) tartozó feladatokat."""
     return [task for task in tasks.values() if task.get('group_id') == group_id]
 
 # --------------------------
-# FELHASZNÁLÓ KEZELÉS (USER/AUTH) - DB HASZNÁLATTAL
+# FELHASZNÁLÓ KEZELÉS (USER/AUTH)
 # --------------------------
 
 @app.route('/register', methods=['POST'])
@@ -71,7 +68,6 @@ def register():
         if User.query.filter_by(email=email).first():
             return jsonify({"hiba": "Ez az e-mail cím már regisztrálva van. "}), 409
         
-        # A regisztrációt a users.py-ban lévő DB funkció kezeli
         new_user = regisztral_felhasznalo(db, User, bcrypt, name, email, password)
 
         return jsonify({
@@ -94,8 +90,6 @@ def login():
     if not all([username, password]):
         return jsonify({"hiba": "Hiányzó adatok (felhasználónév vagy jelszó). "}), 400
 
-    # A bejelentkezést a users.py-ban lévő DB funkció kezeli
-    # Mivel a bejelentkezés felhasználónevet kér, azzal próbálunk keresni
     user = bejelentkezes_felhasznalo(User, bcrypt, username, password)
 
     if user:
@@ -118,7 +112,7 @@ def create_group():
     group_id = str(uuid.uuid4())
     
     # Ellenőrzés: A felhasználó létezik-e a DB-ben
-    creator = User.query.filter_by(id=data.get('creator_id')).first()
+    creator = User.query.filter_by(id=data.get('creator_id')).first() # <--- Itt történik a hiba a régi DB-vel
     if not creator:
         return jsonify({"hiba": "A csoport létrehozásához érvényes felhasználói azonosító szükséges. "}), 400
 
@@ -138,7 +132,6 @@ def create_group():
 
 @app.route('/groups/user/<user_id>', methods=['GET'])
 def get_user_groups(user_id):
-    # A felhasználó csak olyan csoportokat lát, aminek tagja.
     user_groups = [group for group in groups.values() if user_id in group.get('members', [])]
     return jsonify(user_groups), 200
 
@@ -149,7 +142,6 @@ def delete_group(group_id):
         if group_id in group_members:
             del group_members[group_id]
         
-        # Töröljük a csoporthoz tartozó feladatokat is
         tasks_to_delete = [task_id for task_id, task in tasks.items() if task.get('group_id') == group_id]
         for task_id in tasks_to_delete:
             del tasks[task_id]
@@ -162,7 +154,6 @@ def join_group(group_id):
     data = request.json
     username = data.get('username')
     
-    # DB-ből lekérdezzük a felhasználót
     user_to_join = User.query.filter_by(username=username).first()
 
     if group_id not in groups:
@@ -190,7 +181,6 @@ def add_task():
     
     group_id = data.get('group_id')
     
-    # Ellenőrzés: A creator_id létezik-e a DB-ben
     creator = User.query.filter_by(id=data.get('creator_id')).first()
     if not creator:
         return jsonify({"hiba": "A feladat hozzáadásához érvényes felhasználói azonosító (creator_id) szükséges. "}), 400
@@ -220,18 +210,13 @@ def delete_task(task_id):
 
 @app.route('/tasks/group/<group_id>', methods=['GET'])
 def get_group_tasks(group_id):
-    """Visszaadja a csoportos feladatokat (group_id != None)"""
     found_tasks = get_tasks_by_group(group_id)
     return jsonify(found_tasks), 200
 
 @app.route('/tasks/<user_id>', methods=['GET'])
 def get_user_personal_tasks(user_id):
-    """Visszaadja a felhasználó személyes feladatait (group_id = None)"""
     found_tasks = get_tasks_by_group(None)
-    
-    # Szűrjük, hogy csak azok a személyes feladatok jelenjenek meg, amit EZ a felhasználó hozott létre
     personal_tasks = [task for task in found_tasks if task.get('creator_id') == user_id]
-    
     return jsonify(personal_tasks), 200
 
 # --------------------------
@@ -246,13 +231,11 @@ def send_message():
     content = data.get('content')
     message_id = str(uuid.uuid4())
     
-    # DB-ből lekérdezzük a címzettet
     recipient = User.query.filter_by(username=recipient_username).first()
     
     if not recipient:
         return jsonify({"hiba": "A címzett felhasználó nem található. "}), 404
 
-    # DB-ből lekérdezzük a küldőt
     sender = User.query.filter_by(id=sender_id).first()
     if not sender:
         return jsonify({"hiba": "A feladó felhasználó nem található. "}), 400
@@ -272,11 +255,8 @@ def send_message():
 
 @app.route('/messages/<user_id>', methods=['GET'])
 def get_user_messages(user_id):
-    """Lekéri a felhasználóhoz tartozó bejövő és kimenő üzeneteket, és hozzáadja a feladó/címzett nevét."""
-    
     user_messages = []
     
-    # Lekérdezzük az összes felhasználót a DB-ből a gyorsabb lookup érdekében
     db_users = User.query.all()
     user_lookup = {u.id: u.username for u in db_users}
 
@@ -284,7 +264,6 @@ def get_user_messages(user_id):
         if msg['sender_id'] == user_id or msg['recipient_id'] == user_id:
             is_sent_by_me = msg['sender_id'] == user_id
             
-            # Felhasználónevek lekérése a DB lookup táblából
             sender_username = user_lookup.get(msg['sender_id'], 'Ismeretlen')
             recipient_username = user_lookup.get(msg['recipient_id'], 'Ismeretlen')
             
@@ -298,16 +277,13 @@ def get_user_messages(user_id):
                 "recipient_username": recipient_username
             })
     
-    # Rendezés időbélyeg szerint (legújabb üzenet elöl: reverse=True)
     user_messages.sort(key=lambda x: x['timestamp'], reverse=True)
 
     return jsonify(user_messages), 200
 
 @app.route('/messages/<message_id>', methods=['DELETE'])
 def delete_message(message_id):
-    """Törli az üzenetet a rendszerből (a kliensoldalon jelölheti olvasottnak)."""
     if message_id in messages:
-        # Törlés az in-memory DB-ből
         del messages[message_id] 
         return jsonify({"uzenet": "Üzenet olvasottnak jelölve (törölve az in-memory DB-ből). "}), 200
         
@@ -318,7 +294,6 @@ def delete_message(message_id):
 # --------------------------
 
 if __name__ == '__main__':
-    # Adatbázis inicializálása: létrehozza az adatbázis fájlt és a táblákat, ha még nem léteznek
     with app.app_context():
         db.create_all()
         print("Az adatbázis táblák ellenőrizve és létrehozva (ha szükséges).")
